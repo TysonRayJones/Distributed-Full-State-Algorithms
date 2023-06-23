@@ -74,10 +74,10 @@ static void distributed_densitymatrix_phaseGadget(DensityMatrix &rho, NatArray t
 static void distributed_densitymatrix_krausMap(DensityMatrix &rho, MatrixArray krausOps, NatArray targets) {
     
     AmpMatrix superOp = getSuperoperator(krausOps);
-    
-    for (Nat i=0; i<targets.size(); i++)
-        targets.push_back(targets[i] + rho.numQubits);
-        
+
+    for (Nat t : targets)
+        targets.push_back(t + rho.numQubits);
+
     distributed_statevector_manyTargGate(rho, targets, superOp); 
 }
 
@@ -105,7 +105,7 @@ static void distributed_densitymatrix_oneQubitDepolarising(DensityMatrix &rho, N
     
     else {
         Index numIts = rho.numAmpsPerNode / 2;
-        Nat qbShift = qb - (rho.numQubits + rho.logNumNodes);
+        Nat qbShift = qb - rho.numQubits + rho.logNumNodes;
         Nat bit = getBit(rho.rank, qbShift);
         
         // pack half of local amps into buffer
@@ -310,6 +310,7 @@ static Amp distributed_densitymatrix_expecPauliString(DensityMatrix &rho, RealAr
         value += term * rho.amps[j];
     }
     
+    comm_reduceAmp(value);
     return value;
 }
 

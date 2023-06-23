@@ -164,5 +164,13 @@ static void comm_receiveArray(AmpArray& toReceive, Index numAmpsToReceive, Nat p
 }
 
 
+static void comm_reduceAmp(Amp& localAmp) {
+
+    Amp globalAmp;
+    MPI_Allreduce(&localAmp, &globalAmp, 1, MPI_AMP, MPI_SUM, MPI_COMM_WORLD);
+    localAmp = globalAmp;
+}
+
+
 
 #endif // COMMUNICATION_HPP

@@ -34,7 +34,7 @@ static void local_statevector_manyCtrlOneTargGate(StateVector& psi, NatArray con
     qubits.push_back(target);
     std::sort(qubits.begin(), qubits.end());
     
-    Index numIts = psi.numAmpsPerNode / 2 / qubits.size();
+    Index numIts = psi.numAmpsPerNode / powerOf2(qubits.size());
     
     for (Index j=0; j<numIts; j++) {
         Index i1 = insertBits(j, qubits, 1);

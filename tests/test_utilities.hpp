@@ -2,6 +2,8 @@
 #ifndef TEST_UTILITIES_HPP
 #define TEST_UTILITIES_HPP
 
+#include "catch.hpp"
+
 #include "types.hpp"
 #include "bit_maths.hpp"
 #include "states.hpp"
@@ -11,9 +13,6 @@
 #include <iostream>
 #include <algorithm>
 #include <assert.h>
-
-// TODO: needed for a single call to allGather() not yet abstracted
-#include <mpi.h>
 
 
 
@@ -62,9 +61,40 @@ static void allNodesPrintLocalArray(std::vector<T> array) {
 }
 
 
+static Nat getRandomNat(Nat minInclusive, Nat maxExclusive) {
+    assert( maxExclusive > minInclusive );
+
+    // unimportantly uniform (and MPI-safe)
+    Nat n = maxExclusive - minInclusive;
+    Nat r = (Nat) (rand() % n);
+    Nat result = minInclusive + r;
+    return result;
+}
+
+
+static Real getRandomReal(Real minInclusive, Real maxExclusive) {
+
+    Real r = rand()/(Real) RAND_MAX;
+    Real result = minInclusive + r*(maxExclusive - minInclusive);
+    return result;
+}
+
+
+static RealArray getRandomRealArray(Real minInclusive, Real maxExclusive, Nat numElems) {
+    assert( maxExclusive > minInclusive );
+    assert( numElems > 0 );
+
+    RealArray arr = RealArray(numElems);
+    for (Real& elem : arr)
+        elem = getRandomReal(minInclusive, maxExclusive);
+
+    return arr;
+}
+
+
 static Amp getRandomAmp() {
     
-    // generate 2 normally-distributed random numbers via Box-Muller
+    // generate 2 normally-distributed random numbers via Box-Muller (MPI-safe)
     Real a = rand()/(Real) RAND_MAX;
     Real b = rand()/(Real) RAND_MAX;
     Real r1 = sqrt(-2 * log(a)) * cos(2 * 3.14159265 * b);
@@ -91,6 +121,94 @@ static AmpMatrix getRandomMatrix(Index dim) {
         for (Index j=0; j<dim; j++)
             matr[i][j] = getRandomAmp();
     return matr;
+}
+
+
+static MatrixArray getRandomMatrices(Index dim, Nat numMatrices) {
+    assert( dim > 0 );
+    assert( numMatrices > 0 );
+
+    MatrixArray matrices(numMatrices);
+    for (AmpMatrix& matrix : matrices)
+        matrix = getRandomMatrix(dim);
+
+    return matrices;
+}
+
+
+static NatArray getRandomNatArray(Nat minIncl, Nat maxExcl, Nat numElem) {
+    assert( maxExcl > minIncl );
+    assert( numElem > 0 );
+
+    NatArray choices(numElem);
+    for (Nat i=0; i<numElem; i++)
+        choices[i] = getRandomNat(minIncl, maxExcl);
+
+    return choices;
+}
+
+
+static NatArray getRandomUniqueNatArray(Nat minIncl, Nat maxExcl, Nat numElem) {
+    assert( maxExcl > minIncl );
+    assert( numElem > 0 );
+    Nat numAllChoices = maxExcl - minIncl;
+    assert( numElem <= numAllChoices );
+
+    // generate [minIncl,maxExcl)
+    NatArray allChoices(numAllChoices);
+    for (Nat i=0; i<numAllChoices; i++)
+        allChoices[i] = minIncl + i;
+
+    // shuffle [minIncl,maxExcl)
+    Nat numReps = 10*numAllChoices;
+    while ((numReps--) > 0) {
+        Nat i = getRandomNat(0, numAllChoices);
+        Nat j = getRandomNat(0, numAllChoices);
+        std::swap(allChoices[i], allChoices[j]);
+    }
+
+    // select first numElem
+    NatArray choices(allChoices.begin(), allChoices.begin()+numElem);
+    return choices;
+}
+
+
+static NatArray getRandomUniqueNatArray(Nat minIncl, Nat maxExcl, Nat numElem, Nat exclude) {
+    assert( exclude >= minIncl && exclude < maxExcl );
+    assert( (maxExcl - minIncl) > numElem ); // we need 1 for exclude
+
+    NatArray choices = getRandomUniqueNatArray(minIncl, maxExcl, numElem);
+
+    for (Nat i=0; i<choices.size(); i++)
+        if (choices[i] == exclude) {
+
+            // find first not-included element
+            Nat notIncluded = minIncl;
+            while (std::find(choices.begin(), choices.end(), notIncluded) != choices.end())
+                notIncluded++;
+
+            // replace bad element with it
+            choices[i] = notIncluded;
+            break;
+        }
+
+    return choices;
+}
+
+
+static void ensureNotAllPauliZ(NatArray& paulis) {
+    for (Nat pauli : paulis)
+        if (pauli != 3)
+            return;
+    
+    paulis[0] = getRandomNat(1, 2+1);
+}
+
+
+AmpMatrix getExponentialOfPauliTensor(Real angle, AmpMatrix pauliTensor) {
+    AmpMatrix iden = getIdentityMatrix(pauliTensor.size());
+    AmpMatrix expo = (cos(angle) * iden) + (Amp(0,1) * sin(angle) * pauliTensor);
+    return expo;
 }
 
 
@@ -214,17 +332,68 @@ static AmpMatrix getFullGateMatrix(AmpMatrix gateMatr, NatArray ctrls, NatArray 
 }
 
 
-static void applyGateToLocalStateVec(AmpArray& state, NatArray ctrls, NatArray targs, AmpMatrix gateMatr) {
+static void applyGateToLocalState(AmpArray& state, NatArray ctrls, NatArray targs, AmpMatrix gateMatr) {
     Nat numQb = logBase2(state.size());
     AmpMatrix fullGateMatr = getFullGateMatrix(gateMatr, ctrls, targs, numQb);
     state = fullGateMatr * state;
 }
 
 
-static void applyGateToLocalDensMatr(AmpMatrix& state, NatArray ctrls, NatArray targs, AmpMatrix gateMatr) {
+static void applyGateToLocalState(AmpMatrix& state, NatArray ctrls, NatArray targs, AmpMatrix gateMatr) {
     Nat numQb = logBase2(state.size());
     AmpMatrix fullGateMatr = getFullGateMatrix(gateMatr, ctrls, targs, numQb);
     state = fullGateMatr * state * getDaggerMatrix(fullGateMatr);
+}
+
+
+static void applyKrausMapToLocalState(AmpMatrix& state, NatArray targets, MatrixArray krausOps) {
+
+    AmpMatrix copy = state;
+    AmpMatrix tmp;
+    
+    state = getZeroMatrix( state.size() );
+
+    for (AmpMatrix op : krausOps) {
+        tmp = copy;
+        applyGateToLocalState(tmp, {}, targets, op);
+        state = state + tmp;
+    }
+}
+
+
+AmpMatrix getKroneckerProduct(AmpMatrix a, AmpMatrix b) {
+
+    AmpMatrix prod = getZeroMatrix(a.size() * b.size());
+
+    for (size_t r=0; r<b.size(); r++)
+        for (size_t c=0; c<b.size(); c++)
+            for (size_t i=0; i<a.size(); i++)
+                for (size_t j=0; j<a.size(); j++)
+                    prod[r+b.size()*i][c+b.size()*j] = a[i][j] * b[r][c];
+
+    return prod;
+}
+
+
+AmpMatrix getKroneckerProductOfPaulis(NatArray paulis) {
+    for (Nat pauli: paulis)
+        assert( pauli >= 0 && pauli <= 3);
+
+    AmpMatrix prod = getZeroMatrix(1);
+    prod[0][0] = 1;
+
+    for (Nat i=0; i<paulis.size(); i++) {
+        AmpMatrix pauli;
+        switch (paulis[i]) {
+            case 0: pauli = {{1,0},{0,1}}; break;
+            case 1: pauli = {{0,1}, {1,0}}; break;
+            case 2: pauli = {{0,Amp(0,-1)}, {Amp(0,1),0}}; break;
+            case 3: pauli = {{1,0}, {0,-1}}; break;
+        }
+        prod = getKroneckerProduct(pauli, prod);
+    }
+
+    return prod;
 }
 
 
@@ -288,8 +457,10 @@ bool StateVector::agreesWith(AmpArray ref, Real tol=1E-5) {
     
     for (Index i=0; i<ref.size(); i++) {
         Amp dif = ref[i] - allAmps[i];
-        if (real(dif) > tol || imag(dif) > tol)
+        if (real(dif) > tol || imag(dif) > tol) {
+            printf("disagreement of (%g) + i(%g)\n", real(dif), imag(dif));
             return false;
+        }
     }
     
     return true;
@@ -322,13 +493,14 @@ bool DensityMatrix::agreesWith(AmpMatrix ref, Real tol=1E-5) {
     for (Index r=0; r<ref.size(); r++)
         for (Index c=0; c<ref.size(); c++) {
             Amp dif = ref[r][c] - allAmps[r][c];
-            if (real(dif) > tol || imag(dif) > tol)
+            if (real(dif) > tol || imag(dif) > tol) {
+                printf("disagreement of (%g) + i(%g)\n", real(dif), imag(dif));
                 return false;
+            }
         }
     
     return true;
 }
-
 
 
 #endif // TEST_UTILITIES_HPP

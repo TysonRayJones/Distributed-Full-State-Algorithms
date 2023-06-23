@@ -22,13 +22,13 @@ INLINE Amp getPauliTensorElem(Nat* pauliCodes, Nat numQubits, Index flatInd) {
     Amp elem = 1.;
     
     for (Nat q=0; q<numQubits; q++) {
-        Nat code = pauliCodes[numQubits - q - 1];
+        Nat code = pauliCodes[q];
         AmpMatrix matrix = pauliMatrices[code];
         
-        Nat rowBit = getBit(flatInd, q);
-        Nat colBit = getBit(flatInd, q + numQubits);
+        Nat colBit = getBit(flatInd, q);
+        Nat rowBit = getBit(flatInd, q + numQubits);
+    
         Amp fac = matrix[rowBit][colBit];
-        
         elem *= fac;
     }
 
