@@ -54,13 +54,13 @@ static Nat logBase2(Index powerOf2) {
 }
 
 
-static Nat allBitsAreOne(Index number, NatArray bitIndices) {
+static bool allBitsAreOne(Index number, NatArray bitIndices) {
     
     for (Nat i : bitIndices)
         if (!getBit(number, i))
-            return 0;
+            return false;
             
-    return 1;
+    return true;
 }
 
 

@@ -60,7 +60,7 @@ static void distributed_statevector_manyCtrlOneTargGate_subroutine(StateVector& 
     // extract relevant gate elements
     Nat bit = getBit(psi.rank, localTarget);
     Amp fac0 = gate[bit][bit];
-    Amp fac1 = gate[!bit][bit];
+    Amp fac1 = gate[bit][!bit];
     
     // update psi using sub-buffer
     for (Index j=0; j<numIts; j++) {

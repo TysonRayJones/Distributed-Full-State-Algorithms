@@ -104,13 +104,13 @@ static void distributed_densitymatrix_oneQubitDepolarising(DensityMatrix &rho, N
         local_densitymatrix_oneQubitDepolarising(rho, qb, c1, c2, c3);
     
     else {
-        Index numIts = rho.numAmpsPerNode / 2;
-        Nat qbShift = qb - rho.numQubits + rho.logNumNodes;
+        Nat qbShift = qb - (rho.numQubits - rho.logNumNodes);
         Nat bit = getBit(rho.rank, qbShift);
+        Index numIts = rho.numAmpsPerNode / 2;
         
         // pack half of local amps into buffer
         for (Index k=0; k<numIts; k++) {
-            Index j = insertBit(k, qb, ! bit);
+            Index j = insertBit(k, qb, bit);
             rho.buffer[k] = rho.amps[j];
         }
         

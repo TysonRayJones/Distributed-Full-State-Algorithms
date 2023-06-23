@@ -458,7 +458,8 @@ bool StateVector::agreesWith(AmpArray ref, Real tol=1E-5) {
     for (Index i=0; i<ref.size(); i++) {
         Amp dif = ref[i] - allAmps[i];
         if (real(dif) > tol || imag(dif) > tol) {
-            printf("disagreement of (%g) + i(%g)\n", real(dif), imag(dif));
+            if (this->rank == 0)
+                printf("disagreement of (%g) + i(%g)\n", real(dif), imag(dif));
             return false;
         }
     }
@@ -494,7 +495,8 @@ bool DensityMatrix::agreesWith(AmpMatrix ref, Real tol=1E-5) {
         for (Index c=0; c<ref.size(); c++) {
             Amp dif = ref[r][c] - allAmps[r][c];
             if (real(dif) > tol || imag(dif) > tol) {
-                printf("disagreement of (%g) + i(%g)\n", real(dif), imag(dif));
+                if (this->rank == 0)
+                    printf("disagreement of (%g) + i(%g)\n", real(dif), imag(dif));
                 return false;
             }
         }
