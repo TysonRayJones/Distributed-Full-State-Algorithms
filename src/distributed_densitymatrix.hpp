@@ -117,7 +117,7 @@ static void distributed_densitymatrix_oneQubitDepolarising(DensityMatrix &rho, N
         // swap half-buffers, by sending buffer[0...], receiving in buffer[offset...]
         Nat pairRank = flipBit(rho.rank, qbShift);
         Index bufferOffset = numIts;
-        comm_exchangeArrays(rho.buffer, 0, rho.buffer, 0, bufferOffset, pairRank);
+        comm_exchangeArrays(rho.buffer, 0, rho.buffer, bufferOffset, numIts, pairRank);
         
         for (Index k=0; k<numIts; k++) {
             Index j = insertBit(k, qb, ! bit);
