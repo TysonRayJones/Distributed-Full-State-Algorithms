@@ -1,6 +1,6 @@
-
 #ifndef DISTRIBUTED_STATEVECTOR_HPP
 #define DISTRIBUTED_STATEVECTOR_HPP
+
 
 #include "types.hpp"
 #include "states.hpp"
@@ -12,7 +12,7 @@
 
 #include <cmath>
 #include <algorithm>
-
+#include <assert.h>
 
 
 void distributed_statevector_oneTargGate(StateVector& psi, Nat target, AmpMatrix gate) {

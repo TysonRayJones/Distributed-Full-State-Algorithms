@@ -1,11 +1,13 @@
+#ifndef TESTS_DENSITYMATRIX_HPP
+#define TESTS_DENSITYMATRIX_HPP
+
 
 #include "types.hpp"
 #include "states.hpp"
-#include "communication.hpp"
+#include "distributed_densitymatrix.hpp"
+
 #include "test_utilities.hpp"
 #include "catch.hpp"
-
-#include "distributed_densitymatrix.hpp"
 
 
 int NUM_QUBITS_RHO = 5;
@@ -239,3 +241,6 @@ TEST_CASE( "densitymatrix_expecPauliString" ) {
     REQUIRE( real(expec1) == Approx(real(expec2)) );
     REQUIRE( imag(expec1) == Approx(imag(expec2)) );
 }
+
+
+#endif // TESTS_DENSITYMATRIX_HPP

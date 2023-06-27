@@ -2,13 +2,13 @@
 #ifndef LOCAL_STATEVECTOR_HPP
 #define LOCAL_STATEVECTOR_HPP
 
+
 #include "types.hpp"
 #include "states.hpp"
 #include "bit_maths.hpp"
 
 #include <algorithm>
 #include <cmath>
-
 
 
 static void local_statevector_oneTargGate(StateVector& psi, Nat target, AmpMatrix gate) {
@@ -125,7 +125,6 @@ static void local_statevector_phaseGadget(StateVector &psi, NatArray targets, Re
         psi.amps[j] *= facs[p]; // fac1*p + fac0*(!p);
     }
 }
-
 
 
 #endif // LOCAL_STATEVECTOR_HPP

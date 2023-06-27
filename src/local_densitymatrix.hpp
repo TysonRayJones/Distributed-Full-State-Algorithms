@@ -1,10 +1,10 @@
 #ifndef LOCAL_DENSITYMATRIX_HPP
 #define LOCAL_DENSITYMATRIX_HPP
 
+
 #include "types.hpp"
 #include "states.hpp"
 #include "bit_maths.hpp"
-
 
 
 static void local_densitymatrix_oneQubitDephasing(DensityMatrix &rho, Nat qb, Real prob) {
@@ -118,7 +118,6 @@ static void local_densitymatrix_damping(DensityMatrix &rho, Nat qb, Real prob) {
         rho.amps[j11] *= c2;
     }
 }
-
 
 
 #endif // LOCAL_DENSITYMATRIX_HPP

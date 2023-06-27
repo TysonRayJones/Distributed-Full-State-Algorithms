@@ -1,6 +1,6 @@
-
 #ifndef BIT_MATHS_HPP
 #define BIT_MATHS_HPP
+
 
 #include "types.hpp"
 
@@ -116,8 +116,6 @@ INLINE Nat getBitMaskParity(Index mask) {
      number = flipBit(number, i0);
      return number;
  }
-
-
 
 
 

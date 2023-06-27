@@ -1,13 +1,15 @@
 #ifndef DISTRIBUTED_DENSITYMATRIX_HPP
 #define DISTRIBUTED_DENSITYMATRIX_HPP
 
+
 #include "types.hpp"
 #include "states.hpp"
 #include "bit_maths.hpp"
 #include "misc.hpp"
 #include "communication.hpp"
-#include "local_densitymatrix.hpp"
 
+#include "local_densitymatrix.hpp"
+#include "distributed_statevector.hpp"
 
 
 static void distributed_densitymatrix_manyTargGate(DensityMatrix &rho, NatArray targets, AmpMatrix gate) {
@@ -320,7 +322,6 @@ static Amp distributed_densitymatrix_expecPauliString(DensityMatrix &rho, RealAr
     comm_reduceAmp(value);
     return value;
 }
-
 
 
 #endif // DISTRIBUTED_DENSITYMATRIX_HPP

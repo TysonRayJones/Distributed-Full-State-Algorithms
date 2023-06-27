@@ -1,6 +1,6 @@
-
 #ifndef COMMUNICATION_HPP
 #define COMMUNICATION_HPP
+
 
 #include "types.hpp"
 #include "bit_maths.hpp"

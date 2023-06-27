@@ -1,6 +1,6 @@
-
 #ifndef MISC_HPP
 #define MISC_HPP
+
 
 #include "bit_maths.hpp"
 #include "types.hpp"

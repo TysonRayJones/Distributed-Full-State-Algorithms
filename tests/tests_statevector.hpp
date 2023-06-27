@@ -1,11 +1,13 @@
+#ifndef TESTS_STATEVECTOR_HPP
+#define TESTS_STATEVECTOR_HPP
+
 
 #include "types.hpp"
 #include "states.hpp"
-#include "communication.hpp"
+#include "distributed_statevector.hpp"
+
 #include "test_utilities.hpp"
 #include "catch.hpp"
-
-#include "distributed_statevector.hpp"
 
 
 int NUM_QUBITS_PSI = 6;
@@ -131,3 +133,6 @@ TEST_CASE( "statevector_phaseGadget") {
 
     REQUIRE( psi.agreesWith(ref) );
 }
+
+
+#endif // TESTS_STATEVECTOR_HPP

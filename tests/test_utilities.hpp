@@ -1,6 +1,6 @@
-
 #ifndef TEST_UTILITIES_HPP
 #define TEST_UTILITIES_HPP
+
 
 #include "catch.hpp"
 
