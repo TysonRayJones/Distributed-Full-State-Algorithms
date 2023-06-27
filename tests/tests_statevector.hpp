@@ -9,7 +9,7 @@
 
 
 int NUM_QUBITS_PSI = 6;
-int NUM_TRIALS_PER_PSI_TEST = 500;
+int NUM_TRIALS_PER_PSI_TEST = 5000;
 
 
 #define PREPARE_PSI_TEST(psiVar, refVar) \

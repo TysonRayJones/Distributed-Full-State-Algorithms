@@ -9,7 +9,7 @@
 
 
 int NUM_QUBITS_RHO = 5;
-int NUM_TRIALS_PER_RHO_TEST = 500;
+int NUM_TRIALS_PER_RHO_TEST = 5000;
 
 
 #define PREPARE_RHO_TEST(rhoVar, refVar) \
