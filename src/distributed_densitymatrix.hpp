@@ -114,9 +114,10 @@ static void distributed_densitymatrix_oneQubitDepolarising(DensityMatrix &rho, N
             rho.buffer[k] = rho.amps[j];
         }
         
-        // swap half-buffers
+        // swap half-buffers, by sending buffer[0...], receiving in buffer[offset...]
         Nat pairRank = flipBit(rho.rank, qbShift);
-        comm_exchangeArrays(rho.buffer, 0, rho.buffer, 0, numIts, pairRank);
+        Index bufferOffset = numIts;
+        comm_exchangeArrays(rho.buffer, 0, rho.buffer, bufferOffset, numIts, pairRank);
         
         for (Index k=0; k<numIts; k++) {
             Index j = insertBit(k, qb, ! bit);
@@ -125,7 +126,8 @@ static void distributed_densitymatrix_oneQubitDepolarising(DensityMatrix &rho, N
         
         for (Index k=0; k<numIts; k++) {
             Index j = insertBit(k, qb, bit);
-            rho.amps[j] = c2*rho.amps[j] + c1*rho.buffer[k];
+            Index l = k + bufferOffset;
+            rho.amps[j] = c2*rho.amps[j] + c1*rho.buffer[l];
         }
     }
 }
@@ -153,16 +155,18 @@ static void distributed_densitymatrix_twoQubitDepolarising_subroutine_pair(Densi
         rho.buffer[k] = rho.amps[j0b0] + rho.amps[j1b1];
     }
     
-    // swap eighth-buffers
+    // swap eighth-buffers (send buffer[0...], receive in buffer[offset...])
     Nat pairRank = flipBit(rho.rank, alt1);
-    comm_exchangeArrays(rho.buffer, 0, rho.buffer, 0, numIts, pairRank);
+    Index bufferOffset = numIts;
+    comm_exchangeArrays(rho.buffer, 0, rho.buffer, bufferOffset, numIts, pairRank);
     
     for (Index k=0; k<numIts; k++) {
         Index j000 = insertThreeZeroBits(k, q2, q1, q0);
         Index j0b0 = setBit(j000, q1, bit);
         Index j1b1 = flipTwoBits(j0b0, q2, q0);
-        rho.amps[j0b0] = c1*rho.amps[j0b0] + c2*(rho.amps[j1b1] + rho.buffer[k]);
-        rho.amps[j1b1] = c1*rho.amps[j1b1] + c2*(rho.amps[j0b0] + rho.buffer[k]);
+        Index l = k + bufferOffset;
+        rho.amps[j0b0] = c1*rho.amps[j0b0] + c2*(rho.amps[j1b1] + rho.buffer[l]);
+        rho.amps[j1b1] = c1*rho.amps[j1b1] + c2*(rho.amps[j0b0] + rho.buffer[l]);
     }
 }
 
@@ -189,27 +193,30 @@ static void distributed_densitymatrix_twoQubitDepolarising_subroutine_quad(Densi
         rho.buffer[k] = rho.amps[j];
     }
     
-    // swap fourth-buffer with first pair node
+    // swap fourth-buffer with first pair node (send buffer[0...], receive in buffer[offset...])
     Nat pairRank0 = flipBit(rho.rank, alt0);
-    comm_exchangeArrays(rho.buffer, 0, rho.buffer, 0, numIts, pairRank0);
+    Index bufferOffset = numIts;
+    comm_exchangeArrays(rho.buffer, 0, rho.buffer, bufferOffset, numIts, pairRank0);
     
     // update local amps and buffer
     for (Index k=0; k<numIts; k++) {
         Index j = insertTwoBits(k, q1, bit1, q0, bit0);
-        Amp amp = c1*rho.amps[j] + c2*rho.buffer[k];
+        Index l = k + bufferOffset;
+        Amp amp = c1*rho.amps[j] + c2*rho.buffer[l];
         rho.amps[j] = amp;
         rho.buffer[k] = amp;
     }
     
-    // swap fourth-buffer with second pair node
+    // swap fourth-buffer with second pair node (send buffer[0...], receive in buffer[offset...])
     Nat pairRank1 = flipBit(rho.rank, alt1);
-    comm_exchangeArrays(rho.buffer, 0, rho.buffer, 0, numIts, pairRank1);
+    comm_exchangeArrays(rho.buffer, 0, rho.buffer, bufferOffset, numIts, pairRank1);
     
     // update local amps 
     Amp c4 = c2/c1;
     for (Index k=0; k<numIts; k++) {
         Index j = insertTwoBits(k, q1, bit1, q0, bit0);
-        rho.amps[j] = c4 * rho.buffer[k];
+        Index l = k + bufferOffset;
+        rho.amps[j] = c4 * rho.buffer[l];
     }
 }
 

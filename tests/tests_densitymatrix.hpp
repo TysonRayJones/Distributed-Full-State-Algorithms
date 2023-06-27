@@ -9,12 +9,7 @@
 
 
 int NUM_QUBITS_RHO = 5;
-int NUM_TRIALS_PER_RHO_TEST = 50;
-
-AmpMatrix matrI = {{1,0}, {0,1}};
-AmpMatrix matrX = {{0,1}, {1,0}};
-AmpMatrix matrY = {{0,Amp(0,-1)}, {Amp(0,1),0}};
-AmpMatrix matrZ = {{1,0}, {0,-1}};
+int NUM_TRIALS_PER_RHO_TEST = 5000;
 
 
 #define PREPARE_RHO_TEST(rhoVar, refVar) \

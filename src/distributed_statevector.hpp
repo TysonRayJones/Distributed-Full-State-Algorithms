@@ -43,19 +43,23 @@ static void distributed_statevector_manyCtrlOneTargGate_subroutine(StateVector& 
     
     // controls must be sorted for subsequent insertBits() calls
     std::sort(controls.begin(), controls.end());
-    
-    Index numIts = psi.numAmpsPerNode / powerOf2(controls.size());
-    
-    // pack sub-buffer
-    for (Index j=0; j<numIts; j++) {
-        Index k = insertBits(j, controls, 1);
-        psi.buffer[j] = psi.amps[k]; 
-    }
-    
-    // exchange sub-buffer
+        
     Nat localTarget = target - psi.logNumAmpsPerNode;
     Nat pairRank = flipBit(psi.rank, localTarget);
-    comm_exchangeArrays(psi.buffer, 0, psi.buffer, 0, numIts, pairRank);
+    Nat bufferOffset = 0;
+
+    // because controls.size() > 0, it's gauranteed that numAmpsToMod < logNumAmpsPerNode/2
+    Index numAmpsToMod = psi.numAmpsPerNode / powerOf2(controls.size()); 
+
+    // pack sub-buffer[0...]
+    for (Index j=0; j<numAmpsToMod; j++) {
+        Index k = insertBits(j, controls, 1);
+        psi.buffer[j] = psi.amps[k];
+    }
+
+    // send buffer[0...], receive buffer[bufferOffset...] (gauranteed to fit)
+    bufferOffset = numAmpsToMod;
+    comm_exchangeArrays(psi.buffer, 0, psi.buffer, bufferOffset, numAmpsToMod, pairRank);
     
     // extract relevant gate elements
     Nat bit = getBit(psi.rank, localTarget);
@@ -63,9 +67,10 @@ static void distributed_statevector_manyCtrlOneTargGate_subroutine(StateVector& 
     Amp fac1 = gate[bit][!bit];
     
     // update psi using sub-buffer
-    for (Index j=0; j<numIts; j++) {
+    for (Index j=0; j<numAmpsToMod; j++) {
         Index k = insertBits(j, controls, 1);
-        psi.amps[k] = fac0*psi.amps[k] + fac1*psi.buffer[j];
+        Index l = j + bufferOffset;
+        psi.amps[k] = fac0*psi.amps[k] + fac1*psi.buffer[l];
     }
 }
 
@@ -119,10 +124,16 @@ static void distributed_statevector_swapGate(StateVector &psi, Nat qb1, Nat qb2)
     else if (qb1 >= psi.logNumAmpsPerNode) {
         Nat alt1 = qb1 - psi.logNumAmpsPerNode;
         Nat alt2 = qb2 - psi.logNumAmpsPerNode;
-        if (getBit(psi.rank, alt1) == getBit(psi.rank, alt2)) {
+        if (getBit(psi.rank, alt1) != getBit(psi.rank, alt2)) {
             
-            Nat pairRank = flipBit(flipBit(psi.rank, alt1), alt2);
-            comm_exchangeArrays(psi.amps, psi.amps, pairRank);
+            Nat pairRank = flipBit(psi.rank, alt1);
+            pairRank = flipBit(pairRank, alt2);
+
+            // directly swap amps (although MPI arrays must not overlap)
+            comm_exchangeArrays(psi.amps, psi.buffer, pairRank);
+
+            for (Index j=0; j<psi.numAmpsPerNode; j++)
+                psi.amps[j] = psi.buffer[j];
         }
     }
     
@@ -139,7 +150,13 @@ static void distributed_statevector_swapGate(StateVector &psi, Nat qb1, Nat qb2)
             for (Index k=0; k<numIts; k++) {
                 Index i = (k * msgSize * 2) | bitMask;
                 
-                comm_exchangeArrays(psi.amps, i, psi.amps, i, msgSize, pairRank);
+                // directly swap amps subset (although MPI arrays must not overlap)
+                comm_exchangeArrays(psi.amps, i, psi.buffer, i, msgSize, pairRank);
+
+                for (Index j=0; j<msgSize; j++) {
+                    Index l = i + j;
+                    psi.amps[l] = psi.buffer[l];
+                }
             }
             
         // else via a wasteful full swap
@@ -174,6 +191,7 @@ static void distributed_statevector_manyTargGate(StateVector &psi, NatArray targ
             newTargs.push_back(oldTarg);
         else {
             newTargs.push_back(minNonTarg);
+            minNonTarg++;
             while (getBit(mask, minNonTarg))
                 minNonTarg++;
         }
