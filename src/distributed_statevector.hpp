@@ -124,7 +124,7 @@ static void distributed_statevector_swapGate(StateVector &psi, Nat qb1, Nat qb2)
     else if (qb1 >= psi.logNumAmpsPerNode) {
         Nat alt1 = qb1 - psi.logNumAmpsPerNode;
         Nat alt2 = qb2 - psi.logNumAmpsPerNode;
-        if (getBit(psi.rank, alt1) == getBit(psi.rank, alt2)) {
+        if (getBit(psi.rank, alt1) != getBit(psi.rank, alt2)) {
             
             Nat pairRank = flipBit(psi.rank, alt1);
             pairRank = flipBit(pairRank, alt2);
