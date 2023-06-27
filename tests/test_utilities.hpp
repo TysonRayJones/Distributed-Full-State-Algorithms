@@ -15,6 +15,13 @@
 #include <assert.h>
 
 
+Real PI = 3.14159265358979323846;
+
+AmpMatrix matrI = {{1,0}, {0,1}};
+AmpMatrix matrX = {{0,1}, {1,0}};
+AmpMatrix matrY = {{0,Amp(0,-1)}, {Amp(0,1),0}};
+AmpMatrix matrZ = {{1,0}, {0,-1}};
+
 
 static void printMatrix(AmpMatrix matrix) {
     for (Nat r=0; r<matrix.size(); r++) {
@@ -385,10 +392,10 @@ AmpMatrix getKroneckerProductOfPaulis(NatArray paulis) {
     for (Nat i=0; i<paulis.size(); i++) {
         AmpMatrix pauli;
         switch (paulis[i]) {
-            case 0: pauli = {{1,0},{0,1}}; break;
-            case 1: pauli = {{0,1}, {1,0}}; break;
-            case 2: pauli = {{0,Amp(0,-1)}, {Amp(0,1),0}}; break;
-            case 3: pauli = {{1,0}, {0,-1}}; break;
+            case 0: pauli = matrI; break;
+            case 1: pauli = matrX; break;
+            case 2: pauli = matrY; break;
+            case 3: pauli = matrZ; break;
         }
         prod = getKroneckerProduct(pauli, prod);
     }

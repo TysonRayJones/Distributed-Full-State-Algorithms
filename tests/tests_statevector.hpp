@@ -8,10 +8,8 @@
 #include "distributed_statevector.hpp"
 
 
-int NUM_QUBITS_PSI = 5;
-int NUM_TRIALS_PER_PSI_TEST = 100;
-
-Real PI = 3.14159265358979323846;
+int NUM_QUBITS_PSI = 6;
+int NUM_TRIALS_PER_PSI_TEST = 500;
 
 
 #define PREPARE_PSI_TEST(psiVar, refVar) \
