@@ -191,6 +191,7 @@ static void distributed_statevector_manyTargGate(StateVector &psi, NatArray targ
             newTargs.push_back(oldTarg);
         else {
             newTargs.push_back(minNonTarg);
+            minNonTarg++;
             while (getBit(mask, minNonTarg))
                 minNonTarg++;
         }
