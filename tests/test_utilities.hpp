@@ -377,7 +377,7 @@ AmpMatrix getKroneckerProduct(AmpMatrix a, AmpMatrix b) {
 
 AmpMatrix getKroneckerProductOfPaulis(NatArray paulis) {
     for (Nat pauli: paulis)
-        assert( pauli >= 0 && pauli <= 3);
+        assert( pauli <= 3);
 
     AmpMatrix prod = getZeroMatrix(1);
     prod[0][0] = 1;
