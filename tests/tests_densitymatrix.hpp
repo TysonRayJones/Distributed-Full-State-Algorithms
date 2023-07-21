@@ -7,7 +7,9 @@
 #include "distributed_densitymatrix.hpp"
 
 #include "test_utilities.hpp"
-#include "catch.hpp"
+#include "catch_amalgamated.hpp"
+
+#include <algorithm>
 
 
 int NUM_QUBITS_RHO = 5;

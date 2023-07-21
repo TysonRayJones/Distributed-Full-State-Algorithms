@@ -7,7 +7,7 @@
 #include "distributed_statevector.hpp"
 
 #include "test_utilities.hpp"
-#include "catch.hpp"
+#include "catch_amalgamated.hpp"
 
 
 int NUM_QUBITS_PSI = 6;

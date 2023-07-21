@@ -2,8 +2,6 @@
 #define TEST_UTILITIES_HPP
 
 
-#include "catch.hpp"
-
 #include "types.hpp"
 #include "bit_maths.hpp"
 #include "states.hpp"
@@ -13,6 +11,9 @@
 #include <iostream>
 #include <algorithm>
 #include <assert.h>
+
+
+#include "catch_amalgamated.hpp"
 
 
 Real PI = 3.14159265358979323846;
@@ -62,6 +63,17 @@ static void allNodesPrintLocalArray(std::vector<T> array) {
         }
         comm_synch();
     }
+    comm_synch();
+    std::cout << std::flush;
+    comm_synch();
+}
+
+
+template<typename T>
+static void rootNodePrintLocalArray(std::vector<T> array) {
+    comm_synch();
+    if (comm_getRank() == 0)
+        printArray(array);
     comm_synch();
     std::cout << std::flush;
     comm_synch();

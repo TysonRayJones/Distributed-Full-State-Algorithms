@@ -1,5 +1,6 @@
 #define CATCH_CONFIG_RUNNER
-#include "catch.hpp"
+#define CATCH_AMALGAMATED_CUSTOM_MAIN
+#include "catch_amalgamated.hpp"
 
 #include "test_utilities.hpp"
 #include "tests_statevector.hpp"
@@ -9,8 +10,8 @@
 
 
 int main( int argc, char* argv[] ) {
-  comm_init();  
-  int result = Catch::Session().run( argc, argv ); 
-  comm_end();
-  return result;
+    comm_init();  
+    int result = Catch::Session().run( argc, argv ); 
+    comm_end();
+    return result;
 }
