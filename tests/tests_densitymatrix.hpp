@@ -240,8 +240,47 @@ TEST_CASE( "densitymatrix_expecPauliString" ) {
     for (Nat r=0; r<ref.size(); r++)
         expec2 += ref[r][r];
 
-    REQUIRE( real(expec1) == Approx(real(expec2)) );
-    REQUIRE( imag(expec1) == Approx(imag(expec2)) );
+    REQUIRE_THAT( real(expec1), Catch::Matchers::WithinAbs(real(expec2), 1e-12) );
+    REQUIRE_THAT( imag(expec1), Catch::Matchers::WithinAbs(imag(expec2), 1e-12) );
+}
+
+
+TEST_CASE( "densitymatrix_partialTrace" ) {
+
+    PREPARE_RHO_TEST( rho, ref );
+
+    // cannot trace out more qubits than can fit in the suffix sub-register
+    Nat max1 = NUM_QUBITS_RHO - rho.logNumNodes;
+
+    // cannot create an output density matrix with fewer columns than nodes
+    Nat max2 = rho.logNumAmpsPerNode / 2;
+
+    // choose a random set of targets
+    Nat maxNumTargsExcl = (max1 < max2)? max1 : max2;
+    Nat numTargs = getRandomNat(1, maxNumTargsExcl);
+    NatArray targs = getRandomUniqueNatArray(0, NUM_QUBITS_RHO, numTargs);
+    std::sort(targs.begin(), targs.end());
+
+    DensityMatrix rhoOut = distributed_densitymatrix_partialTrace(rho, targs);
+
+    // serially populate the reference reduced matrix
+    AmpMatrix refOut = getZeroMatrix( powerOf2(NUM_QUBITS_RHO - numTargs) );
+    
+    for (Index i=0; i<refOut.size(); i++) {
+        for (Index j=0; j<refOut.size(); j++) {
+            Index i0 = insertBits(i, targs, 0);
+            Index j0 = insertBits(j, targs, 0);
+
+            refOut[i][j] = 0;
+            for (Index k=0; k<powerOf2(numTargs); k++) {
+                Index ik = setBits(i0, targs, k);
+                Index jk = setBits(j0, targs, k);
+                refOut[i][j] += ref[ik][jk];
+            }
+        }
+    }
+
+    REQUIRE( rhoOut.agreesWith(refOut) );
 }
 
 

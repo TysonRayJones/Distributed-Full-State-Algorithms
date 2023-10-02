@@ -6,6 +6,8 @@
 #include "states.hpp"
 #include "bit_maths.hpp"
 
+#include <algorithm>
+
 
 static void local_densitymatrix_oneQubitDephasing(DensityMatrix &rho, Nat qb, Real prob) {
 
@@ -117,6 +119,38 @@ static void local_densitymatrix_damping(DensityMatrix &rho, Nat qb, Real prob) {
         rho.amps[j10] *= c1;
         rho.amps[j11] *= c2;
     }
+}
+
+
+static DensityMatrix local_densitymatrix_partialTrace(DensityMatrix &inRho, NatArray targs, NatArray pairTargs) {
+
+    DensityMatrix outRho = DensityMatrix(inRho.numQubits - targs.size());
+
+    // sort all targets
+    NatArray allTargs = targs;
+    allTargs.insert(allTargs.end(), pairTargs.begin(), pairTargs.end());
+    std::sort(allTargs.begin(), allTargs.end());
+
+    Index numTracedAmps = powerOf2(targs.size());
+
+    for (Index l=0; l<outRho.numAmpsPerNode; l++) {
+
+        outRho.amps[l] = 0.;
+
+        Index lMask = insertBits(l, allTargs, 0);
+
+        for (Index k=0; k<numTracedAmps; k++) {
+
+            Index i = lMask;
+            i = setBits(i, targs, k);
+            i = setBits(i, pairTargs, k);
+
+            outRho.amps[l] += inRho.amps[i];
+        }
+    }
+
+    // return-value optimisation in most compilers should avoid a copy here
+    return outRho;
 }
 
 
