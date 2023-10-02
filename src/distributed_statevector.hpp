@@ -110,20 +110,15 @@ static void distributed_statevector_swapGate(StateVector &psi, Nat qb1, Nat qb2)
         std::swap(qb1, qb2);
         
     // embarrassingly parallel
-    if (qb2 < psi.logNumAmpsPerNode) {
-        Index numIts = psi.numAmpsPerNode / 4;
-        for (Index k=0; k<numIts; k++) {
-            Index j11 = insertTwoBits(k, qb2, 1, qb1, 1);
-            Index j10 = flipBit(j11, qb1);
-            Index j01 = flipBit(j11, qb2);
-            std::swap(psi.amps[j01], psi.amps[j10]);
-        }
-    }
+    if (qb2 < psi.logNumAmpsPerNode)
+        local_statevector_swapGate(psi, qb1, qb2);
     
     // zero or one full-statevector swaps
     else if (qb1 >= psi.logNumAmpsPerNode) {
         Nat alt1 = qb1 - psi.logNumAmpsPerNode;
         Nat alt2 = qb2 - psi.logNumAmpsPerNode;
+
+        // half of the nodes do nothing, the other half swap
         if (getBit(psi.rank, alt1) != getBit(psi.rank, alt2)) {
             
             Nat pairRank = flipBit(psi.rank, alt1);
@@ -136,40 +131,50 @@ static void distributed_statevector_swapGate(StateVector &psi, Nat qb1, Nat qb2)
                 psi.amps[j] = psi.buffer[j];
         }
     }
+
+    // contiguous half-statevector swap
+    else if (qb1 == psi.logNumAmpsPerNode - 1) {
+        Nat alt2 = qb2 - psi.logNumAmpsPerNode;
+        Nat pairRank = flipBit(psi.rank, alt2);
+
+        // determine whether this node sends former or latter half of amps
+        Index numAmpsToMod = psi.numAmpsPerNode / 2;
+        Index ampIndOffset = numAmpsToMod * (! getBit(psi.rank, alt2));
+
+        // swap half of amps, both nodes receiving to buffer[0...]
+        comm_exchangeArrays(psi.amps, ampIndOffset, psi.buffer, 0, numAmpsToMod, pairRank);
+
+        // overwrite former or latter half of amps
+        for (Index k=0; k<numAmpsToMod; k++) {
+            Index j = k + ampIndOffset;
+            psi.amps[j] = psi.buffer[k];
+        }
+    }
     
-    // communicate and overwrite half of local amps...
+    // non-contiguous half-statevector swap, via packing
     else {
         Nat alt2 = qb2 - psi.logNumAmpsPerNode;
         Nat pairRank = flipBit(psi.rank, alt2);
-        Index bitMask = ( ! getBit(psi.rank, alt2) ) << qb1;
-        
-        // via direct overwrites (if msgSize sufficiently large)
-        if (qb1 >= 30) {
-            Index msgSize = powerOf2(qb1);
-            Index numIts = psi.numAmpsPerNode / msgSize;
-            for (Index k=0; k<numIts; k++) {
-                Index i = (k * msgSize * 2) | bitMask;
-                
-                // directly swap amps subset (although MPI arrays must not overlap)
-                comm_exchangeArrays(psi.amps, i, psi.buffer, i, msgSize, pairRank);
+        Index numAmpsToMod = psi.numAmpsPerNode / 2;
 
-                for (Index j=0; j<msgSize; j++) {
-                    Index l = i + j;
-                    psi.amps[l] = psi.buffer[l];
-                }
-            }
-            
-        // else via a wasteful full swap
-        } else {
-            comm_exchangeArrays(psi.amps, psi.buffer, pairRank);
-            
-            Index numIts = psi.numAmpsPerNode / 2;
-            for (Index k=0; k<numIts; k++) {
-                Index j = insertBit(k, qb1, 0);
-                Index i = (j & (~bitMask)) | bitMask;
-                Index l = flipBit(i, qb1);
-                psi.amps[i] = psi.buffer[l];
-            }
+        // determine which bit value of qb1 is to be packed
+        Nat bit1 = (! getBit(psi.rank, alt2));
+
+        // pack half of amps into buffer, where qb1 = bit1
+        for (Index k=0; k<numAmpsToMod; k++) {
+            Index j = insertBit(k, qb1, bit1);
+            psi.buffer[k] = psi.amps[j];
+        }
+
+        // swap packed buffers, both nodes receiving to buffer[numAmpsToMod...]
+        Index bufferOffset = numAmpsToMod;
+        comm_exchangeArrays(psi.buffer, 0, psi.buffer, bufferOffset, numAmpsToMod, pairRank);
+
+        // replace same half of amps with buffer contents
+        for (Index k=0; k<numAmpsToMod; k++) {
+            Index l = k + bufferOffset;
+            Index j = insertBit(k, qb1, bit1);
+            psi.amps[j] = psi.buffer[l];
         }
     }
 }

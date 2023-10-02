@@ -49,6 +49,22 @@ static void local_statevector_manyCtrlOneTargGate(StateVector& psi, NatArray con
 }
 
 
+static void local_statevector_swapGate(StateVector &psi, Nat qb1, Nat qb2) {
+    
+    // ensure qb2 is larger
+    if (qb1 > qb2)
+        std::swap(qb1, qb2);
+        
+    Index numIts = psi.numAmpsPerNode / 4;
+    for (Index k=0; k<numIts; k++) {
+        Index j11 = insertTwoBits(k, qb2, 1, qb1, 1);
+        Index j10 = flipBit(j11, qb1);
+        Index j01 = flipBit(j11, qb2);
+        std::swap(psi.amps[j01], psi.amps[j10]);
+    }
+}
+
+
 static void local_statevector_manyTargGate(StateVector &psi, NatArray targets, AmpMatrix gate) {
     
     AmpArray cache(gate.size());
