@@ -359,7 +359,6 @@ static DensityMatrix distributed_densitymatrix_partialTrace(DensityMatrix &inRho
     NatArray reorderedTargets(0);
     for (Nat q = extendedTargets.size(); q-- != 0; ) {
         Nat oldTarg = extendedTargets[q];
-        // for (Nat oldTarg : extendedTargets) {
         if (oldTarg < inRho.logNumAmpsPerNode)
             reorderedTargets.push_back(oldTarg);
         else {
@@ -394,10 +393,11 @@ static DensityMatrix distributed_densitymatrix_partialTrace(DensityMatrix &inRho
     }
 
     // remove the targeted (and ergo traced out) qubit indices, momentarily maintaining non-targeted indices
+    NatArray remainingQubits(0);
     Index reorderedMask = getBitMask(reorderedTargets);
-    auto targeted = [reorderedMask](Nat q) { return (bool) getBit(reorderedMask, q); };
-    NatArray remainingQubits = allQubits;
-    remainingQubits.erase(std::remove_if(remainingQubits.begin(), remainingQubits.end(), targeted), remainingQubits.end());
+    for (Nat q : allQubits)
+        if (!getBit(reorderedMask, q))
+            remainingQubits.push_back(q);
 
     // shift surviving un-targeted qubits from [0..2N) to [0..2N-2len(targets))
     for (Nat &q : remainingQubits) {
