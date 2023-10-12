@@ -336,16 +336,10 @@ static DensityMatrix distributed_densitymatrix_partialTrace(DensityMatrix &inRho
     // targets must be sorted for bitwise insertions
     std::sort(targets.begin(), targets.end());
 
-    // check a priori whether all targets are in suffix...
-    bool allInSuffix = true;
-    for (Nat t : targets)
-        if (t + inRho.numQubits >= inRho.logNumAmpsPerNode)
-            allInSuffix = false;
-
-    // and if so, invoke embarrassingly parallel backend (avoids a Nat underflow in SWAP checks below)
-    if (allInSuffix) {
+    // if all targets are in suffix, invoke embarrassingly parallel trace on {t, t+N}
+    if (targets.back() + inRho.numQubits < inRho.logNumAmpsPerNode) {
         NatArray pairs = targets;
-        for(Nat &t : pairs)
+        for (Nat &t : pairs)
             t += inRho.numQubits;
         return local_densitymatrix_partialTrace(inRho, targets, pairs);
     }
