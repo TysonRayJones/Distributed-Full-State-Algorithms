@@ -344,31 +344,13 @@ static DensityMatrix distributed_densitymatrix_partialTrace(DensityMatrix &inRho
         return local_densitymatrix_partialTrace(inRho, targets, pairs);
     }
 
-    // treating outRho as a statevector, collect all involved qubits as "extendedTargets"
+    // treating outRho as a statevector, collect all involved qubits as "extendedTargets"...
     NatArray extendedTargets = targets;
     for (Nat t : targets)
         extendedTargets.push_back(t + inRho.numQubits);
 
-    // locate largest non-targeted qubit of the suffix subregister
-    Index targetMask = getBitMask(extendedTargets);
-    Nat maxSuffixNonTarg = inRho.logNumAmpsPerNode - 1;
-    while (getBit(targetMask, maxSuffixNonTarg))
-        maxSuffixNonTarg--;
-        
-    // determine desired target ordering, where prefix targets are swapped with largest un-targeted un-swapped suffix qubits
-    NatArray reorderedTargets(0);
-    for (Nat q = extendedTargets.size(); q-- != 0; ) {
-        Nat oldTarg = extendedTargets[q];
-        if (oldTarg < inRho.logNumAmpsPerNode)
-            reorderedTargets.push_back(oldTarg);
-        else {
-            reorderedTargets.push_back(maxSuffixNonTarg);
-            maxSuffixNonTarg--;
-            while (getBit(targetMask, maxSuffixNonTarg))
-                maxSuffixNonTarg--;
-        }
-    }
-    std::reverse(reorderedTargets.begin(), reorderedTargets.end());
+    // and find which qubits they should be swapped with, so that all effective targets lie in the suffix substate
+    NatArray reorderedTargets = getReorderedAllSuffixTargets(extendedTargets, inRho.logNumAmpsPerNode);
 
     // effect those swaps, enabling subsequent (disordered) partial trace to be embarrassingly parallel.
     // we iterate in reverse (swap leftmost qubits first), to minimise violating relative order of non-targeted bits
@@ -381,32 +363,10 @@ static DensityMatrix distributed_densitymatrix_partialTrace(DensityMatrix &inRho
 
     DensityMatrix outRho = local_densitymatrix_partialTrace(inRho, targets, pairTargets);
 
-    // determine the ordering of all qubits after swaps
-    NatArray allQubits(2 * inRho.numQubits);
-    for (Nat q=0; q<allQubits.size(); q++)
-        allQubits[q] = q;
-    for (Nat q=0; q<reorderedTargets.size(); q++) {
-        Nat qb1 = extendedTargets[q];
-        Nat qb2 = reorderedTargets[q];
-        if (qb1 != qb2)
-            std::swap(allQubits[qb1], allQubits[qb2]);
-    }
+    // determine order of remaining non-targered qubits
+    NatArray remainingQubits = getNonTargetedQubitOrder(2*inRho.numQubits, extendedTargets, reorderedTargets);
 
-    // remove the targeted (and ergo traced out) qubit indices, momentarily maintaining non-targeted indices
-    NatArray remainingQubits(0);
-    Index reorderedMask = getBitMask(reorderedTargets);
-    for (Nat q : allQubits)
-        if (!getBit(reorderedMask, q))
-            remainingQubits.push_back(q);
 
-    // shift surviving un-targeted qubits from [0..2N) to [0..2N-2len(targets))
-    for (Nat &q : remainingQubits) {
-        Nat dif = 0;
-        for (Nat t : reorderedTargets)
-            if (t < q)
-                dif++;
-        q -= dif;
-    }
 
     // iterate the output prefix positions directly (to avoid displacing prefix qubits into suffix)...
     for (Nat q=outRho.logNumAmpsPerNode; q<2*outRho.numQubits; q++) {

@@ -109,5 +109,70 @@ static AmpMatrix getSuperoperator(MatrixArray krausOps) {
 }
 
 
+static Nat getNextLeftmostZeroBit(Index mask, Nat bitInd) {
+
+    bitInd--;
+    while (getBit(mask, bitInd))
+        bitInd--;
+    
+    return bitInd;
+}
+
+
+static NatArray getReorderedAllSuffixTargets(NatArray targets, Nat suffixSize) {
+
+    // locate largest non-targeted qubit of the suffix subregister
+    Index targetMask = getBitMask(targets);
+    Nat maxSuffixNonTarg = getNextLeftmostZeroBit(targetMask, suffixSize);
+        
+    // determine desired target ordering, where prefix targets are swapped with largest un-targeted un-swapped suffix qubits
+    NatArray reorderedTargets(0);
+    for (Nat q = targets.size(); q-- != 0; ) {
+        if (targets[q] < suffixSize)
+            reorderedTargets.push_back(targets[q]);
+        else {
+            reorderedTargets.push_back(maxSuffixNonTarg);
+            maxSuffixNonTarg = getNextLeftmostZeroBit(targetMask, maxSuffixNonTarg);
+        }
+    }
+    std::reverse(reorderedTargets.begin(), reorderedTargets.end());
+
+    return reorderedTargets;
+}
+
+
+static NatArray getNonTargetedQubitOrder(Nat numAllQubits, NatArray originalTargets, NatArray reorderedTargets) {
+
+        // determine the ordering of all qubits after swaps
+    NatArray allQubits(numAllQubits);
+    for (Nat q=0; q<allQubits.size(); q++)
+        allQubits[q] = q;
+    for (Nat q=0; q<reorderedTargets.size(); q++) {
+        Nat qb1 = originalTargets[q];
+        Nat qb2 = reorderedTargets[q];
+        if (qb1 != qb2)
+            std::swap(allQubits[qb1], allQubits[qb2]);
+    }
+
+    // remove the targeted qubit indices, momentarily maintaining non-targeted indices
+    NatArray remainingQubits(0);
+    Index reorderedMask = getBitMask(reorderedTargets);
+    for (Nat q : allQubits)
+        if (!getBit(reorderedMask, q))
+            remainingQubits.push_back(q);
+
+    // shift surviving un-targeted qubits from [0..2N) to [0..2N-2len(targets))
+    for (Nat &q : remainingQubits) {
+        Nat dif = 0;
+        for (Nat t : reorderedTargets)
+            if (t < q)
+                dif++;
+        q -= dif;
+    }
+
+    return remainingQubits;
+}
+
+
 
 #endif // MISC_HPP
