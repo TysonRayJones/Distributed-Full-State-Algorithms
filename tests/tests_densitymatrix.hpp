@@ -250,14 +250,9 @@ TEST_CASE( "densitymatrix_partialTrace" ) {
     PREPARE_RHO_TEST( rho, ref );
 
     // cannot trace out more qubits than can fit in the suffix sub-register
-    Nat max1 = NUM_QUBITS_RHO - rho.logNumNodes;
-
-    // cannot create an output density matrix with fewer columns than nodes
-    Nat max2 = rho.logNumAmpsPerNode / 2;
-
-    // choose a random set of targets
-    Nat maxNumTargsExcl = (max1 < max2)? max1 : max2;
-    Nat numTargs = getRandomNat(1, maxNumTargsExcl);
+    Nat maxNumTargs = NUM_QUBITS_RHO - rho.logNumNodes;
+    
+    Nat numTargs = getRandomNat(1, maxNumTargs+1);
     NatArray targs = getRandomUniqueNatArray(0, NUM_QUBITS_RHO, numTargs);
     std::sort(targs.begin(), targs.end());
 
