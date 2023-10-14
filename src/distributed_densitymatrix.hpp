@@ -324,4 +324,61 @@ static Amp distributed_densitymatrix_expecPauliString(DensityMatrix &rho, RealAr
 }
 
 
+static DensityMatrix distributed_densitymatrix_partialTrace(DensityMatrix &inRho, NatArray targets) {
+
+    // require that the reduced density matrix has more (or equal) columns than nodes
+    Nat outRhoNumQubits = inRho.numQubits - targets.size();
+    assert( outRhoNumQubits >= inRho.logNumNodes );
+
+    // require that all targets (including Choi shifts) can fit within a single node
+    assert( inRho.logNumAmpsPerNode >= 2*targets.size() );
+
+    // targets must be sorted for bitwise insertions
+    std::sort(targets.begin(), targets.end());
+
+    // if all targets are in suffix, invoke embarrassingly parallel trace on {t, t+N}, and return
+    if (targets.back() + inRho.numQubits < inRho.logNumAmpsPerNode) {
+        NatArray pairs = targets;
+        for (Nat &t : pairs)
+            t += inRho.numQubits;
+        return local_densitymatrix_partialTrace(inRho, targets, pairs);
+    }
+
+    // otherwise, treating outRho as a statevector, collect all involved qubits...
+    NatArray extendedTargets = targets;
+    for (Nat t : targets)
+        extendedTargets.push_back(t + inRho.numQubits);
+
+    // and find which qubits they should be swapped with, so that all effective targets lie in the suffix substate
+    NatArray reorderedTargets = getReorderedAllSuffixTargets(extendedTargets, inRho.logNumAmpsPerNode);
+
+    // effect those swaps, enabling subsequent (disordered) partial trace to be embarrassingly parallel.
+    // we iterate in reverse (swap leftmost qubits first), to minimise violating relative order of non-targeted bits
+    for (Nat q = reorderedTargets.size(); q-- != 0; )
+        if (reorderedTargets[q] != extendedTargets[q])
+            distributed_statevector_swapGate(inRho, reorderedTargets[q], extendedTargets[q]);
+
+    // embarassingly parallel reduce the density matrix
+    NatArray pairTargets(reorderedTargets.begin() + targets.size(), reorderedTargets.end());
+    DensityMatrix outRho = local_densitymatrix_partialTrace(inRho, targets, pairTargets);
+
+    // determine the relative ordering of the remaining non-targered qubits
+    NatArray remainingQubits = getNonTargetedQubitOrder(2*inRho.numQubits, extendedTargets, reorderedTargets);
+
+    // perform additional swaps to re-order the remaining qubits
+    for (Nat q=remainingQubits.size(); q-- != 0; ) {
+        if (remainingQubits[q] == q)
+            continue;
+        Nat p = 0;
+        while (remainingQubits[p] != q)
+            p++;
+        
+        distributed_statevector_swapGate(outRho, q, p);
+        std::swap(remainingQubits[q], remainingQubits[p]);
+    }
+
+    return outRho;
+}
+
+
 #endif // DISTRIBUTED_DENSITYMATRIX_HPP

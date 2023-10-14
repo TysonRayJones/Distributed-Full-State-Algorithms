@@ -185,21 +185,22 @@ static void distributed_statevector_manyTargGate(StateVector &psi, NatArray targ
     
     // locate smallest non-targeted qubit
     Index mask = getBitMask(targets);
-    Index minNonTarg = 0;
+    Nat minNonTarg = 0;
     while (getBit(mask, minNonTarg))
         minNonTarg++;
         
-    // record which target qubits require swapping
+    // swap qubits above max into smallest non-targeted
     NatArray newTargs(0);
-    for (Nat oldTarg : targets)
-        if (oldTarg < psi.logNumAmpsPerNode)
-            newTargs.push_back(oldTarg);
+    for (Nat targ : targets) {
+        if (targ < psi.logNumAmpsPerNode)
+            newTargs.push_back(targ);
         else {
             newTargs.push_back(minNonTarg);
             minNonTarg++;
             while (getBit(mask, minNonTarg))
                 minNonTarg++;
         }
+    }
     
     // perform necessary swaps (each definitely inducing communication)
     for (Nat i=0; i<targets.size(); i++)
