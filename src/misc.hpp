@@ -143,7 +143,7 @@ static NatArray getReorderedAllSuffixTargets(NatArray targets, Nat suffixSize) {
 
 static NatArray getNonTargetedQubitOrder(Nat numAllQubits, NatArray originalTargets, NatArray reorderedTargets) {
 
-        // determine the ordering of all qubits after swaps
+    // determine the ordering of all qubits after swaps
     NatArray allQubits(numAllQubits);
     for (Nat q=0; q<allQubits.size(); q++)
         allQubits[q] = q;
@@ -157,17 +157,16 @@ static NatArray getNonTargetedQubitOrder(Nat numAllQubits, NatArray originalTarg
     // remove the targeted qubit indices, momentarily maintaining non-targeted indices
     NatArray remainingQubits(0);
     Index reorderedMask = getBitMask(reorderedTargets);
-    for (Nat q : allQubits)
-        if (!getBit(reorderedMask, q))
-            remainingQubits.push_back(q);
+    for (Nat i=0; i<allQubits.size(); i++)
+        if (!getBit(reorderedMask, i))
+            remainingQubits.push_back(allQubits[i]);
 
-    // shift surviving un-targeted qubits from [0..2N) to [0..2N-2len(targets))
+    // shift remaining qubits to be contiguous [0, ..., 2N-len(reorderedTargets))
+    Index remainingMask = getBitMask(remainingQubits);
     for (Nat &q : remainingQubits) {
-        Nat dif = 0;
-        for (Nat t : reorderedTargets)
-            if (t < q)
-                dif++;
-        q -= dif;
+        Nat p = q;
+        for (Nat i=0; i<p; i++)
+            q -= ! getBit(remainingMask, i);
     }
 
     return remainingQubits;

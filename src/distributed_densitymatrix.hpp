@@ -336,7 +336,7 @@ static DensityMatrix distributed_densitymatrix_partialTrace(DensityMatrix &inRho
     // targets must be sorted for bitwise insertions
     std::sort(targets.begin(), targets.end());
 
-    // if all targets are in suffix, invoke embarrassingly parallel trace on {t, t+N}
+    // if all targets are in suffix, invoke embarrassingly parallel trace on {t, t+N}, and return
     if (targets.back() + inRho.numQubits < inRho.logNumAmpsPerNode) {
         NatArray pairs = targets;
         for (Nat &t : pairs)
@@ -344,7 +344,7 @@ static DensityMatrix distributed_densitymatrix_partialTrace(DensityMatrix &inRho
         return local_densitymatrix_partialTrace(inRho, targets, pairs);
     }
 
-    // treating outRho as a statevector, collect all involved qubits as "extendedTargets"...
+    // otherwise, treating outRho as a statevector, collect all involved qubits...
     NatArray extendedTargets = targets;
     for (Nat t : targets)
         extendedTargets.push_back(t + inRho.numQubits);
@@ -360,44 +360,21 @@ static DensityMatrix distributed_densitymatrix_partialTrace(DensityMatrix &inRho
 
     // embarassingly parallel reduce the density matrix
     NatArray pairTargets(reorderedTargets.begin() + targets.size(), reorderedTargets.end());
-
     DensityMatrix outRho = local_densitymatrix_partialTrace(inRho, targets, pairTargets);
 
-    // determine order of remaining non-targered qubits
+    // determine the relative ordering of the remaining non-targered qubits
     NatArray remainingQubits = getNonTargetedQubitOrder(2*inRho.numQubits, extendedTargets, reorderedTargets);
 
-
-
-    // iterate the output prefix positions directly (to avoid displacing prefix qubits into suffix)...
-    for (Nat q=outRho.logNumAmpsPerNode; q<2*outRho.numQubits; q++) {
-
-        // if the correct suffix bit is already there, continue
+    // perform additional swaps to re-order the remaining qubits
+    for (Nat q=remainingQubits.size(); q-- != 0; ) {
         if (remainingQubits[q] == q)
             continue;
-
-        // otherwise, locate the suffix bit (as 'p')
         Nat p = 0;
         while (remainingQubits[p] != q)
             p++;
-
-        // and swap it into its final suffix location (updating our records)
+        
         distributed_statevector_swapGate(outRho, q, p);
         std::swap(remainingQubits[q], remainingQubits[p]);
-    }
-    
-    // iterate the suffix bits (which are now gauranteed to require swaps only with suffix) 
-    for (Nat q=0; q<outRho.logNumAmpsPerNode; q++) {
-
-        // (ignoring correctly placed bits)
-        if (remainingQubits[q] == q)
-            continue;
-
-        // swap each encountered directly into its final suffix position
-        distributed_statevector_swapGate(outRho, q, remainingQubits[q]);
-        std::swap(remainingQubits[q], remainingQubits[remainingQubits[q]]);
-
-        // ensuring not to advance past and skip the arriving bit
-        q--;
     }
 
     return outRho;
