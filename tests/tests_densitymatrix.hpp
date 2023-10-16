@@ -249,7 +249,11 @@ TEST_CASE( "densitymatrix_partialTrace" ) {
 
     PREPARE_RHO_TEST( rho, ref );
 
-    // cannot trace out more qubits than can fit in the suffix sub-register
+    // output, reduced density matrix must have >=1 columns per-node.
+    // this is _not_ essential for the algorithm, which actually permits looser
+    //      maxNumTargs = NUM_QUBITS_RHO - (rho.logNumNodes/2),
+    // but required as a precondition to our density-matrix constructor, to
+    // maintain compatibility with the other algorithms in this project
     Nat maxNumTargs = NUM_QUBITS_RHO - rho.logNumNodes;
     
     Nat numTargs = getRandomNat(1, maxNumTargs+1);

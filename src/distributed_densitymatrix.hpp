@@ -326,12 +326,17 @@ static Amp distributed_densitymatrix_expecPauliString(DensityMatrix &rho, RealAr
 
 static DensityMatrix distributed_densitymatrix_partialTrace(DensityMatrix &inRho, NatArray targets) {
 
-    // require that the reduced density matrix has more (or equal) columns than nodes
+    // require that the reduced density matrix has more (or equal) columns than nodes, so
+    // that it is compatible with this project's other algorithms
     Nat outRhoNumQubits = inRho.numQubits - targets.size();
     assert( outRhoNumQubits >= inRho.logNumNodes );
 
-    // require that all targets (including Choi shifts) can fit within a single node
-    assert( inRho.logNumAmpsPerNode >= 2*targets.size() );
+    /* Note this algorithm imposes a looser constraint; that
+     *      targets.size() <= inRho.numQubits - (inRho.logNumNodes/2)
+     * and ergo permits tracing out more qubits than the above restriction
+     * permits. However, the reduced density matrices violate the precondition
+     * of the DensityMatrix constructor
+     */
 
     // targets must be sorted for bitwise insertions
     std::sort(targets.begin(), targets.end());
