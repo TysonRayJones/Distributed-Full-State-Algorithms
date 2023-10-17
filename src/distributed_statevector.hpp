@@ -33,6 +33,7 @@ void distributed_statevector_oneTargGate(StateVector& psi, Nat target, AmpMatrix
         Amp fac1 = gate[bit][!bit];
         
         // update psi using local and received amps
+        #pragma omp parallel for
         for (Index i=0; i<psi.numAmpsPerNode; i++)
             psi.amps[i] = fac0*psi.amps[i] + fac1*psi.buffer[i];
     }
@@ -52,6 +53,7 @@ static void distributed_statevector_manyCtrlOneTargGate_subroutine(StateVector& 
     Index numAmpsToMod = psi.numAmpsPerNode / powerOf2(controls.size()); 
 
     // pack sub-buffer[0...]
+    #pragma omp parallel for
     for (Index j=0; j<numAmpsToMod; j++) {
         Index k = insertBits(j, controls, 1);
         psi.buffer[j] = psi.amps[k];
@@ -67,6 +69,7 @@ static void distributed_statevector_manyCtrlOneTargGate_subroutine(StateVector& 
     Amp fac1 = gate[bit][!bit];
     
     // update psi using sub-buffer
+    #pragma omp parallel for
     for (Index j=0; j<numAmpsToMod; j++) {
         Index k = insertBits(j, controls, 1);
         Index l = j + bufferOffset;
@@ -127,6 +130,7 @@ static void distributed_statevector_swapGate(StateVector &psi, Nat qb1, Nat qb2)
             // directly swap amps (although MPI arrays must not overlap)
             comm_exchangeArrays(psi.amps, psi.buffer, pairRank);
 
+            #pragma omp parallel for
             for (Index j=0; j<psi.numAmpsPerNode; j++)
                 psi.amps[j] = psi.buffer[j];
         }
@@ -145,6 +149,7 @@ static void distributed_statevector_swapGate(StateVector &psi, Nat qb1, Nat qb2)
         comm_exchangeArrays(psi.amps, ampIndOffset, psi.buffer, 0, numAmpsToMod, pairRank);
 
         // overwrite former or latter half of amps
+        #pragma omp parallel for
         for (Index k=0; k<numAmpsToMod; k++) {
             Index j = k + ampIndOffset;
             psi.amps[j] = psi.buffer[k];
@@ -161,6 +166,7 @@ static void distributed_statevector_swapGate(StateVector &psi, Nat qb1, Nat qb2)
         Nat bit1 = (! getBit(psi.rank, alt2));
 
         // pack half of amps into buffer, where qb1 = bit1
+        #pragma omp parallel for
         for (Index k=0; k<numAmpsToMod; k++) {
             Index j = insertBit(k, qb1, bit1);
             psi.buffer[k] = psi.amps[j];
@@ -171,6 +177,7 @@ static void distributed_statevector_swapGate(StateVector &psi, Nat qb1, Nat qb2)
         comm_exchangeArrays(psi.buffer, 0, psi.buffer, bufferOffset, numAmpsToMod, pairRank);
 
         // replace same half of amps with buffer contents
+        #pragma omp parallel for
         for (Index k=0; k<numAmpsToMod; k++) {
             Index l = k + bufferOffset;
             Index j = insertBit(k, qb1, bit1);
@@ -223,6 +230,7 @@ static void distributed_statevector_pauliTensorOrGadget_subroutine(StateVector &
     
     Index rankShift = pairRank << psi.logNumAmpsPerNode;
     
+    #pragma omp parallel for
     for (Index j0=0; j0<psi.numAmpsPerNode; j0++) {
         Index j1 = j0 ^ maskXY;
         Index i1 = rankShift | j1;

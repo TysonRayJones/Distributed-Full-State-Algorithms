@@ -44,6 +44,14 @@ typedef std::vector<Real> RealArray;
 
 
 /*
+ * inform OpenMP how to reduce Amp
+ */
+
+#pragma omp declare	reduction(+ : Amp : omp_out += omp_in ) initializer( omp_priv = omp_orig )
+
+
+
+/*
  * operator overloads for array and matrix
  */
 

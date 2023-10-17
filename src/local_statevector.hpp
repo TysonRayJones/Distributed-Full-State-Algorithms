@@ -15,6 +15,7 @@ static void local_statevector_oneTargGate(StateVector& psi, Nat target, AmpMatri
     
     Index numIts = psi.numAmpsPerNode / 2;
     
+    #pragma omp parallel for
     for (Index j=0; j<numIts; j++) {
         Index i0 = insertBit(j, target, 0);
         Index i1 = flipBit(i0, target);
@@ -36,6 +37,7 @@ static void local_statevector_manyCtrlOneTargGate(StateVector& psi, NatArray con
     
     Index numIts = psi.numAmpsPerNode / powerOf2(qubits.size());
     
+    #pragma omp parallel for
     for (Index j=0; j<numIts; j++) {
         Index i1 = insertBits(j, qubits, 1);
         Index i0 = flipBit(i1, target);
@@ -56,6 +58,8 @@ static void local_statevector_swapGate(StateVector &psi, Nat qb1, Nat qb2) {
         std::swap(qb1, qb2);
         
     Index numIts = psi.numAmpsPerNode / 4;
+
+    #pragma omp parallel for
     for (Index k=0; k<numIts; k++) {
         Index j11 = insertTwoBits(k, qb2, 1, qb1, 1);
         Index j10 = flipBit(j11, qb1);
@@ -67,24 +71,28 @@ static void local_statevector_swapGate(StateVector &psi, Nat qb1, Nat qb2) {
 
 static void local_statevector_manyTargGate(StateVector &psi, NatArray targets, AmpMatrix gate) {
     
+    // each thread receives private cache copy
     AmpArray cache(gate.size());
     NatArray qubits = targets;
     std::sort(qubits.begin(), qubits.end());
     
-    Index numIts = psi.numAmpsPerNode / gate.size();
-    for (Index k=0; k<numIts; k++) {
+    Index numInnerIts = gate.size();
+    Index numOuterIts = psi.numAmpsPerNode / numInnerIts;
+
+    #pragma omp parallel for firstprivate(cache)
+    for (Index k=0; k<numOuterIts; k++) {
         
         Index baseInd = insertBits(k, qubits, 0);
         
-        for (Index j=0; j<gate.size(); j++) {
+        for (Index j=0; j<numInnerIts; j++) {
             Index i = setBits(baseInd, targets, j);
             cache[j] = psi.amps[i];
         }
         
-        for (Index j=0; j<gate.size(); j++) {
+        for (Index j=0; j<numInnerIts; j++) {
             Index i = setBits(baseInd, targets, j);
             psi.amps[i] = 0;
-            for (Index l=0; l<gate.size(); l++)
+            for (Index l=0; l<numInnerIts; l++)
                 psi.amps[i] += gate[j][l] * cache[l];
         }
     }
@@ -100,6 +108,7 @@ static void local_statevector_pauliTensorOrGadget_subroutine(StateVector &psi, N
     Index numInnerIts = powerOf2(targs.size()) / 2;
     Index rankShift = psi.rank << psi.logNumAmpsPerNode;
     
+    #pragma omp parallel for
     for (Index k=0; k<numOuterIts; k++) {
         Index h = insertBits(k, targs, 0);
         
@@ -135,6 +144,7 @@ static void local_statevector_phaseGadget(StateVector &psi, NatArray targets, Re
     Amp fac1 = Amp(cos(theta), -sin(theta)); // exp(-i theta)
     AmpArray facs = {fac0, fac1};
     
+    #pragma omp parallel for
     for (Index j=0; j<psi.numAmpsPerNode; j++) {
         Index i = rankShift | j;
         Nat p = getBitMaskParity(i & targMask);

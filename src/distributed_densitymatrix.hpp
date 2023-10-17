@@ -111,6 +111,7 @@ static void distributed_densitymatrix_oneQubitDepolarising(DensityMatrix &rho, N
         Index numIts = rho.numAmpsPerNode / 2;
         
         // pack half of local amps into buffer
+        #pragma omp parallel for
         for (Index k=0; k<numIts; k++) {
             Index j = insertBit(k, qb, bit);
             rho.buffer[k] = rho.amps[j];
@@ -121,11 +122,13 @@ static void distributed_densitymatrix_oneQubitDepolarising(DensityMatrix &rho, N
         Index bufferOffset = numIts;
         comm_exchangeArrays(rho.buffer, 0, rho.buffer, bufferOffset, numIts, pairRank);
         
+        #pragma omp parallel for
         for (Index k=0; k<numIts; k++) {
             Index j = insertBit(k, qb, ! bit);
             rho.amps[j] *= c3;
         }
         
+        #pragma omp parallel for
         for (Index k=0; k<numIts; k++) {
             Index j = insertBit(k, qb, bit);
             Index l = k + bufferOffset;
@@ -141,6 +144,7 @@ static void distributed_densitymatrix_twoQubitDepolarising_subroutine_pair(Densi
     Nat bit = getBit(rho.rank, alt1);
     
     // scale all amplitudes
+    #pragma omp parallel for
     for (Index j=0; j<rho.numAmpsPerNode; j++) {
         Nat flag1 = getBit(j, q0) == getBit(j, q2); 
         Nat flag2 = getBit(j, q1) == bit;
@@ -150,6 +154,7 @@ static void distributed_densitymatrix_twoQubitDepolarising_subroutine_pair(Densi
     
     // pack eighth of buffer with pre-summed amp pairs
     Index numIts = rho.numAmpsPerNode / 8;
+    #pragma omp parallel for
     for (Index k=0; k<numIts; k++) {
         Index j000 = insertThreeZeroBits(k, q2, q1, q0);
         Index j0b0 = setBit(j000, q1, bit);
@@ -162,6 +167,7 @@ static void distributed_densitymatrix_twoQubitDepolarising_subroutine_pair(Densi
     Index bufferOffset = numIts;
     comm_exchangeArrays(rho.buffer, 0, rho.buffer, bufferOffset, numIts, pairRank);
     
+    #pragma omp parallel for
     for (Index k=0; k<numIts; k++) {
         Index j000 = insertThreeZeroBits(k, q2, q1, q0);
         Index j0b0 = setBit(j000, q1, bit);
@@ -181,6 +187,7 @@ static void distributed_densitymatrix_twoQubitDepolarising_subroutine_quad(Densi
     Nat bit1 = getBit(rho.rank, alt1);
     
     // scale all amplitudes
+    #pragma omp parallel for
     for (Index j=0; j<rho.numAmpsPerNode; j++) {
         Nat flag1 = getBit(j, q0) == bit0; 
         Nat flag2 = getBit(j, q1) == bit1;
@@ -190,6 +197,7 @@ static void distributed_densitymatrix_twoQubitDepolarising_subroutine_quad(Densi
     
     // pack fourth of buffer
     Index numIts = rho.numAmpsPerNode / 4;
+    #pragma omp parallel for
     for (Index k=0; k<numIts; k++) {
         Index j = insertTwoBits(k, q1, bit1, q0, bit0);
         rho.buffer[k] = rho.amps[j];
@@ -201,6 +209,7 @@ static void distributed_densitymatrix_twoQubitDepolarising_subroutine_quad(Densi
     comm_exchangeArrays(rho.buffer, 0, rho.buffer, bufferOffset, numIts, pairRank0);
     
     // update local amps and buffer
+    #pragma omp parallel for
     for (Index k=0; k<numIts; k++) {
         Index j = insertTwoBits(k, q1, bit1, q0, bit0);
         Index l = k + bufferOffset;
@@ -215,6 +224,7 @@ static void distributed_densitymatrix_twoQubitDepolarising_subroutine_quad(Densi
     
     // update local amps 
     Amp c4 = c2/c1;
+    #pragma omp parallel for
     for (Index k=0; k<numIts; k++) {
         Index j = insertTwoBits(k, q1, bit1, q0, bit0);
         Index l = k + bufferOffset;
@@ -266,6 +276,7 @@ static void distributed_densitymatrix_damping(DensityMatrix &rho, Nat qb, Real p
         if (bit == 1) {
             
             // pack half buffer and scale half their amps
+            #pragma omp parallel for
             for (Index k=0; k<numIts; k++) {
                 Index j = insertBit(k, qb, 1);
                 rho.buffer[k] = rho.amps[j];
@@ -277,6 +288,7 @@ static void distributed_densitymatrix_damping(DensityMatrix &rho, Nat qb, Real p
         }
         
         // all nodes proceed to scale half their (remaining) local amps
+        #pragma omp parallel for
         for (Index k=0; k<numIts; k++) {
             Index j = insertBit(k, qb, !bit);
             rho.amps[j] *= c1;
@@ -289,6 +301,7 @@ static void distributed_densitymatrix_damping(DensityMatrix &rho, Nat qb, Real p
             comm_receiveArray(rho.buffer, numIts, pairRank);
             
             // and combine it with their remaining local amps
+            #pragma omp parallel for
             for (Index k=0; k<numIts; k++) {
                 Index j = insertBit(k, qb, 0);
                 rho.amps[j] += prob * rho.buffer[k];
@@ -304,13 +317,15 @@ static void distributed_densitymatrix_damping(DensityMatrix &rho, Nat qb, Real p
 static Amp distributed_densitymatrix_expecPauliString(DensityMatrix &rho, RealArray coeffs, NatArray allPaulis) {
 
     Amp value = 0;
+    Index numCoeffs = coeffs.size();
     
+    #pragma omp parallel for reduction(+:value)
     for (Index j=0; j<rho.numAmpsPerNode; j++) {
         Index i = (rho.rank << rho.logNumAmpsPerNode) | j;
 
         Amp term = 0;
         
-        for (Index t=0; t<coeffs.size(); t++) {
+        for (Index t=0; t<numCoeffs; t++) {
             Nat* termPaulis = &allPaulis[t*rho.numQubits];
             Amp elem = getPauliTensorElem(termPaulis, rho.numQubits, i);
             term += elem * coeffs[t];

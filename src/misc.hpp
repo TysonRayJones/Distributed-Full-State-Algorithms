@@ -2,6 +2,8 @@
 #define MISC_HPP
 
 
+#include <algorithm>
+
 #include "bit_maths.hpp"
 #include "types.hpp"
 

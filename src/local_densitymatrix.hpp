@@ -18,6 +18,7 @@ static void local_densitymatrix_oneQubitDephasing(DensityMatrix &rho, Nat qb, Re
         Index numIts = rho.numAmpsPerNode / 2;
         Nat bit = ! getBit(rho.rank, qb - (rho.numQubits - rho.logNumNodes));
         
+        #pragma omp parallel for
         for (Index k=0; k<numIts; k++) {
             Index j = insertBit(k, qb, bit);
             rho.amps[j] *= fac;
@@ -29,6 +30,7 @@ static void local_densitymatrix_oneQubitDephasing(DensityMatrix &rho, Nat qb, Re
         Index numIts = rho.numAmpsPerNode / 4;
         Nat altQb = qb + rho.numQubits;
         
+        #pragma omp parallel for
         for (Index k=0; k<numIts; k++) {
             Index j01 = insertTwoBits(k, altQb, 0, qb, 1);
             rho.amps[j01] *= fac;
@@ -47,6 +49,7 @@ static void local_densitymatrix_twoQubitDephasing(DensityMatrix &rho, Nat qb1, N
     Nat alt2 = qb2 + rho.numQubits;
     Amp term = - 4*prob/3;
     
+    #pragma omp parallel for
     for (Index j=0; j<rho.numAmpsPerNode; j++) {
         Index i = rankShift | j;
         Nat bit1 = getBit(i, qb1) ^ getBit(i, alt1);
@@ -62,6 +65,7 @@ static void local_densitymatrix_oneQubitDepolarising(DensityMatrix &rho, Nat qb,
     Index numIts = rho.numAmpsPerNode / 4;
     Nat altQb = qb + rho.numQubits;
     
+    #pragma omp parallel for
     for (Index k=0; k<numIts; k++) {
         Index j00 = insertTwoBits(k, altQb, 0, qb, 0);
         Index j01 = flipBit(j00, qb);
@@ -78,14 +82,17 @@ static void local_densitymatrix_oneQubitDepolarising(DensityMatrix &rho, Nat qb,
 
 static void local_densitymatrix_twoQubitDepolarising(DensityMatrix &rho, Nat q0, Nat q1, Nat q2, Nat q3, Amp c1, Amp c2, Amp c3) {
     
+    #pragma omp parallel for
     for (Index j=0; j<rho.numAmpsPerNode; j++) {
-        Nat flag1 = getBit(j, q0) == getBit(j, q2);
-        Nat flag2 = getBit(j, q1) == getBit(j, q3);
+        Nat flag1 = !(getBit(j, q0) ^ getBit(j, q2));
+        Nat flag2 = !(getBit(j, q1) ^ getBit(j, q3));
         Amp fac = 1. + c3 * Amp(!(flag1 & flag2), 0);
         rho.amps[j] *= fac;
     }
     
     Index numIts = rho.numAmpsPerNode / 16;
+
+    #pragma omp parallel for
     for (Index k=0; k<numIts; k++) {
         Index j0000 = insertFourZeroBits(k, q3, q2, q1, q0);
         Index j0101 = flipTwoBits(j0000, q2, q0);
@@ -108,6 +115,8 @@ static void local_densitymatrix_damping(DensityMatrix &rho, Nat qb, Real prob) {
     Amp c2 = 1 - prob;
 
     Index numIts = rho.numAmpsPerNode / 4;
+
+    #pragma omp parallel for
     for (Index k=0; k<numIts; k++) {
         Index j00 = insertTwoBits(k, qbAlt, 0, qb, 0);
         Index j01 = flipBit(j00, qb);
@@ -133,6 +142,7 @@ static DensityMatrix local_densitymatrix_partialTrace(DensityMatrix &inRho, NatA
 
     Index numTracedAmps = powerOf2(targs.size());
 
+    #pragma omp parallel for
     for (Index l=0; l<outRho.numAmpsPerNode; l++) {
 
         outRho.amps[l] = 0.;

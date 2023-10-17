@@ -11,7 +11,6 @@
  * None of these twiddles may use sign tricks, 
  * since Nat and Index are unsigned.
  */
- 
 
 
 #define INLINE static inline __attribute__((always_inline))
