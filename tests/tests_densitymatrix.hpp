@@ -257,13 +257,13 @@ TEST_CASE( "densitymatrix_partialTrace" ) {
     
     Nat numTargs = getRandomNat(1, maxNumTargs + 1);
     NatArray targs = getRandomUniqueNatArray(0, NUM_QUBITS_RHO, numTargs);
-    std::sort(targs.begin(), targs.end());
 
     DensityMatrix rhoOut = distributed_densitymatrix_partialTrace(rho, targs);
 
     // serially populate the reference reduced matrix
     AmpMatrix refOut = getZeroMatrix( powerOf2(NUM_QUBITS_RHO - numTargs) );
     
+    std::sort(targs.begin(), targs.end());
     for (Index i=0; i<refOut.size(); i++) {
         for (Index j=0; j<refOut.size(); j++) {
             Index i0 = insertBits(i, targs, 0);

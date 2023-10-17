@@ -64,6 +64,8 @@ static AmpMatrix getSuperoperator(MatrixArray krausOps) {
     for (AmpMatrix krausOp : krausOps) {
         
         // superOp += conj(krausOp) (tensor) krausOp
+
+        #pragma omp parallel for
         for (Index i=0; i<krausDim; i++)
             for (Index j=0; j<krausDim; j++)
                 for (Index k=0; k<krausDim; k++)

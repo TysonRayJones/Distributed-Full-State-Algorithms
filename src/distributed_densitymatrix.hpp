@@ -79,10 +79,11 @@ static void distributed_densitymatrix_krausMap(DensityMatrix &rho, MatrixArray k
 
     AmpMatrix superOp = getSuperoperator(krausOps);
 
+    NatArray extendedTargets = targets;
     for (Nat t : targets)
-        targets.push_back(t + rho.numQubits);
+        extendedTargets.push_back(t + rho.numQubits);
 
-    distributed_statevector_manyTargGate(rho, targets, superOp); 
+    distributed_statevector_manyTargGate(rho, extendedTargets, superOp);
 }
 
 
