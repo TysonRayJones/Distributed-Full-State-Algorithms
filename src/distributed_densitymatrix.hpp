@@ -283,7 +283,7 @@ static void distributed_densitymatrix_damping(DensityMatrix &rho, Nat qb, Real p
                 rho.amps[j] *= c2;
             }
             
-            // asynchronously send half-buffer
+            // asynchronously send half-buffer, instantly proceeding
             comm_asynchSendArray(rho.buffer, numIts, pairRank);
         }
         
@@ -297,7 +297,7 @@ static void distributed_densitymatrix_damping(DensityMatrix &rho, Nat qb, Real p
         // other half of all nodes...
         if (bit == 0) {
             
-            // receive half-buffer 
+            // receive half-buffer (waiting for full receive)
             comm_receiveArray(rho.buffer, numIts, pairRank);
             
             // and combine it with their remaining local amps
@@ -308,7 +308,7 @@ static void distributed_densitymatrix_damping(DensityMatrix &rho, Nat qb, Real p
             }
         }
         
-        // stop asynch senders from proceeding to maintain buffer integrity
+        // stop asynch senders from proceeding, so their buffers aren't subsequently prematurely modified
         comm_synch();
     }
 }
