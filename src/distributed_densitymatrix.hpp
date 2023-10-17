@@ -42,9 +42,11 @@ static void distributed_densitymatrix_pauliTensor(DensityMatrix &rho, NatArray t
     
     distributed_statevector_pauliTensor(rho, targets, paulis);
     
-    if (containsOddNumY(paulis))
+    if (containsOddNumY(paulis)) {
+        #pragma omp parallel for
         for (Amp &amp : rho.amps)
             amp *= -1;
+    }
 }
 
 
