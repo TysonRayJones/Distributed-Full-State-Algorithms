@@ -27,8 +27,8 @@ TEST_CASE( "densitymatrix_manyTargGate" ) {
         
     PREPARE_RHO_TEST( rho, ref );
     
-    Nat maxNumTargs = NUM_QUBITS_RHO / 2;
-    Nat numTargs = getRandomNat(1, maxNumTargs);
+    Nat maxNumTargs = NUM_QUBITS_RHO - ceil(rho.logNumNodes / 2.);
+    Nat numTargs = getRandomNat(1, maxNumTargs + 1);
     NatArray targets = getRandomUniqueNatArray(0, NUM_QUBITS_RHO, numTargs);
     AmpMatrix gate = getRandomMatrix( powerOf2(numTargs) );
 
@@ -57,7 +57,7 @@ TEST_CASE( "densitymatrix_pauliTensor" ) {
 
     PREPARE_RHO_TEST( rho, ref );
 
-    Nat numTargs = getRandomNat(1, NUM_QUBITS_RHO);
+    Nat numTargs = getRandomNat(1, NUM_QUBITS_RHO + 1);
     NatArray targets = getRandomUniqueNatArray(0, NUM_QUBITS_RHO, numTargs);
     NatArray paulis = getRandomNatArray(1, 4, numTargs);
     ensureNotAllPauliZ(paulis);
@@ -74,7 +74,7 @@ TEST_CASE( "densitymatrix_pauliGadget" ) {
 
     PREPARE_RHO_TEST( rho, ref );
 
-    Nat numTargs = getRandomNat(1, NUM_QUBITS_RHO);
+    Nat numTargs = getRandomNat(1, NUM_QUBITS_RHO + 1);
     NatArray targets = getRandomUniqueNatArray(0, NUM_QUBITS_RHO, numTargs);
     NatArray paulis = getRandomNatArray(1, 4, numTargs);
     ensureNotAllPauliZ(paulis);
@@ -93,8 +93,7 @@ TEST_CASE( "densitymatrix_phaseGadget") {
     
     PREPARE_RHO_TEST( rho, ref );
 
-    Nat maxNumTargs = NUM_QUBITS_RHO / 2;
-    Nat numTargs = getRandomNat(1, maxNumTargs);
+    Nat numTargs = getRandomNat(1, NUM_QUBITS_RHO + 1);
     NatArray targets = getRandomUniqueNatArray(0, NUM_QUBITS_RHO, numTargs);
     Real theta = getRandomReal(-PI, PI);
     AmpMatrix tensor = getKroneckerProductOfPaulis(NatArray(numTargs, 3));
@@ -111,8 +110,8 @@ TEST_CASE( "densitymatrix_krausMap" ) {
 
     PREPARE_RHO_TEST( rho, ref );
 
-    Nat maxNumTargs = NUM_QUBITS_RHO / 2;
-    Nat numTargs = getRandomNat(1, maxNumTargs);
+    Nat maxNumTargs = NUM_QUBITS_RHO - ceil(rho.logNumNodes / 2.);
+    Nat numTargs = getRandomNat(1, maxNumTargs + 1);
     NatArray targets = getRandomUniqueNatArray(0, NUM_QUBITS_RHO, numTargs);
     Nat numKrausOps = getRandomNat(1, 10);
     MatrixArray krausOps = getRandomMatrices(powerOf2(numTargs), numKrausOps);
@@ -256,7 +255,7 @@ TEST_CASE( "densitymatrix_partialTrace" ) {
     // maintain compatibility with the other algorithms in this project
     Nat maxNumTargs = NUM_QUBITS_RHO - rho.logNumNodes;
     
-    Nat numTargs = getRandomNat(1, maxNumTargs+1);
+    Nat numTargs = getRandomNat(1, maxNumTargs + 1);
     NatArray targs = getRandomUniqueNatArray(0, NUM_QUBITS_RHO, numTargs);
     std::sort(targs.begin(), targs.end());
 

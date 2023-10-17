@@ -69,8 +69,8 @@ TEST_CASE( "statevector_manyTargGate") {
     
     PREPARE_PSI_TEST( psi, ref );
 
-    Nat maxNumTargs = NUM_QUBITS_PSI / 2;
-    Nat numTargs = getRandomNat(1, maxNumTargs);
+    Nat maxNumTargs = NUM_QUBITS_PSI - psi.logNumNodes;
+    Nat numTargs = getRandomNat(1, maxNumTargs + 1);
     NatArray targets = getRandomUniqueNatArray(0, NUM_QUBITS_PSI, numTargs);
     AmpMatrix gate = getRandomMatrix( powerOf2(numTargs) );
 
@@ -85,7 +85,7 @@ TEST_CASE( "statevector_pauliTensor" ) {
 
     PREPARE_PSI_TEST( psi, ref );
 
-    Nat numTargs = getRandomNat(1, NUM_QUBITS_PSI);
+    Nat numTargs = getRandomNat(1, NUM_QUBITS_PSI + 1);
     NatArray targets = getRandomUniqueNatArray(0, NUM_QUBITS_PSI, numTargs);
     NatArray paulis = getRandomNatArray(1, 4, numTargs);
     ensureNotAllPauliZ(paulis);
@@ -102,7 +102,7 @@ TEST_CASE( "statevector_pauliGadget" ) {
 
     PREPARE_PSI_TEST( psi, ref );
 
-    Nat numTargs = getRandomNat(1, NUM_QUBITS_PSI);
+    Nat numTargs = getRandomNat(1, NUM_QUBITS_PSI + 1);
     NatArray targets = getRandomUniqueNatArray(0, NUM_QUBITS_PSI, numTargs);
     NatArray paulis = getRandomNatArray(1, 4, numTargs);
     ensureNotAllPauliZ(paulis);
@@ -121,8 +121,7 @@ TEST_CASE( "statevector_phaseGadget") {
     
     PREPARE_PSI_TEST( psi, ref );
 
-    Nat maxNumTargs = NUM_QUBITS_PSI / 2;
-    Nat numTargs = getRandomNat(1, maxNumTargs);
+    Nat numTargs = getRandomNat(1, NUM_QUBITS_PSI + 1);
     NatArray targets = getRandomUniqueNatArray(0, NUM_QUBITS_PSI, numTargs);
     Real theta = getRandomReal(-PI, PI);
     AmpMatrix tensor = getKroneckerProductOfPaulis(NatArray(numTargs, 3));

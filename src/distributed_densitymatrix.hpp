@@ -13,7 +13,8 @@
 
 
 static void distributed_densitymatrix_manyTargGate(DensityMatrix &rho, NatArray targets, AmpMatrix gate) {
-    
+    assert( 2*targets.size() <= rho.logNumAmpsPerNode );
+
     distributed_statevector_manyTargGate(rho, targets, gate);
     
     for (Nat &t : targets)
@@ -74,7 +75,8 @@ static void distributed_densitymatrix_phaseGadget(DensityMatrix &rho, NatArray t
 
 
 static void distributed_densitymatrix_krausMap(DensityMatrix &rho, MatrixArray krausOps, NatArray targets) {
-    
+    assert( 2*targets.size() <= rho.logNumAmpsPerNode );
+
     AmpMatrix superOp = getSuperoperator(krausOps);
 
     for (Nat t : targets)
