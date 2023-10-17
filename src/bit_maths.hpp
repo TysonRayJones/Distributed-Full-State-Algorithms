@@ -22,6 +22,12 @@ INLINE Index powerOf2(Nat exponent) {
 }
 
 
+INLINE bool isPowerOf2(Index number) {
+
+    return (number > 0) && ((number & (number - 1U)) == 0);
+}
+
+
 INLINE Nat getBit(Index number, Nat bitIndex) {
     
     return (number >> bitIndex) & 1U;
@@ -86,6 +92,7 @@ INLINE Nat getBitMaskParity(Index mask) {
  * Aliases for code clarity 
  */
  
+
  INLINE Index insertTwoBits(Index number, Nat highInd, Nat highBit, Nat lowInd, Nat lowBit) {
      
      number = insertBit(number, lowInd, lowBit);
@@ -116,6 +123,53 @@ INLINE Nat getBitMaskParity(Index mask) {
      return number;
  }
 
+
+
+ /* 
+ * Non-performance critical code; not to be used in tight loops
+ */
+
+
+static Nat getNextLeftmostZeroBit(Index mask, Nat bitInd) {
+
+    bitInd--;
+    while (getBit(mask, bitInd))
+        bitInd--;
+    
+    return bitInd;
+}
+
+
+static bool allBitsAreOne(Index number, NatArray bitIndices) {
+    
+    for (Nat i : bitIndices)
+        if (!getBit(number, i))
+            return false;
+            
+    return true;
+}
+
+
+static Index getBitMask(NatArray bitIndices) {
+    
+    Index mask = 0;
+    for (Nat i: bitIndices)
+        mask = flipBit(mask, i);
+        
+    return mask;
+}
+
+
+static Nat logBase2(Index powerOf2) {
+    
+    Nat expo = 0;
+    while (getBit(powerOf2, 0) != 1) {
+        expo++;
+        powerOf2 >>= 1;
+    }
+
+    return expo;
+}
 
 
 #endif // BIT_MATHS_HPP
