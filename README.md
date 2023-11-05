@@ -7,7 +7,7 @@ Distributed Simulation of Statevectors and Density Matrices
 > Quantum Motion Technologies Ltd
 
 
-This repository contains `C++` implementations of the multithreaded, distributed algorithms presented in [this manuscript](TODO), and unit tests using [Catch2](TODO). If this code is useful to you, please cite
+This repository contains `C++` implementations of the multithreaded, distributed algorithms presented in [this manuscript](TODO), and unit tests using [Catch2](https://github.com/catchorg/Catch2). If this code is useful to you, please cite
 ```
 TODO arxiv bibtex
 ```
