@@ -3,14 +3,11 @@ Distributed Simulation of Statevectors and Density Matrices
 ===========================================================
 
 > Tyson Jones, Balint Koczor, Simon C. Benjamin  
-> Department of Materials, University of Oxford  
-> Quantum Motion Technologies Ltd
+> - Department of Materials, University of Oxford  
+> - Quantum Motion Technologies Ltd
 
 
-This repository contains `C++` implementations of the multithreaded, distributed algorithms presented in [this manuscript](TODO), and unit tests using [Catch2](https://github.com/catchorg/Catch2). If this code is useful to you, please cite
-```
-TODO arxiv bibtex
-```
+This repository contains `C++` implementations of the multithreaded, distributed algorithms presented in the above manuscript, and unit tests using [Catch2](https://github.com/catchorg/Catch2). 
 
 # Types
 
