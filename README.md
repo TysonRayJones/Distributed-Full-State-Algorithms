@@ -1,5 +1,5 @@
 
-Distributed Simulation of Statevectors and Density Matrices
+[Distributed Simulation of Statevectors and Density Matrices](https://arxiv.org/abs/2311.01512)
 ===========================================================
 
 > Tyson Jones, Balint Koczor, Simon C. Benjamin  
@@ -7,7 +7,17 @@ Distributed Simulation of Statevectors and Density Matrices
 > - Quantum Motion Technologies Ltd
 
 
-This repository contains `C++` implementations of the multithreaded, distributed algorithms presented in the above manuscript, and unit tests using [Catch2](https://github.com/catchorg/Catch2). 
+This repository contains `C++` implementations of the multithreaded, distributed algorithms presented in [this manuscript](https://arxiv.org/abs/2311.01512), and unit tests using [Catch2](https://github.com/catchorg/Catch2). If the code is useful to you, feel free to cite
+```
+@misc{jones2023distributed,
+      title={Distributed Simulation of Statevectors and Density Matrices}, 
+      author={Tyson Jones and Bálint Koczor and Simon C. Benjamin},
+      year={2023},
+      eprint={2311.01512},
+      archivePrefix={arXiv},
+      primaryClass={quant-ph}
+}
+```
 
 # Types
 
