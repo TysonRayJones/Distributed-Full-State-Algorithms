@@ -60,9 +60,10 @@ INLINE Index insertBits(Index number, NatArray bitIndices, Nat bitValue) {
 
 
 INLINE Index setBit(Index number, Nat bitIndex, Nat bitValue) {
-    
+
+    Index comp = ~ (1ULL << bitIndex);
     Index mask = bitValue << bitIndex;
-    return (number & (~mask)) | mask;
+    return (number & (~comp)) | mask;
 }
 
 
