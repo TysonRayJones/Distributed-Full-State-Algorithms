@@ -14,18 +14,18 @@ Here we explain the limitations with the current distribution method.
 `cuStateVec`'s current distribution scheme is to use the "[distributed index bit swap](https://docs.nvidia.com/cuda/cuquantum/23.03.0/custatevec/distributed_index_bit_swap.html)" to swap target qubits into the lower indices so that subsequent modification is embarrassingly parallel, and can leverage `cuStateVec`'s local (i.e. non-distributed) functions.
  One could thereafter invoke the swap _again_ to restore the qubit ordering, or merely re-map the target qubits of subsequent operators. This technique is sometimes called "qubit reordering" or "cache blocking" - see [Sec IV. D](https://arxiv.org/pdf/2311.01512.pdf#page=21).
 
-As a quantum circuit, it resembles
+As a quantum circuit, it resembles ([Fig. 12](https://arxiv.org/pdf/2311.01512.pdf#page=23))
 <p align="center">
-<img src="doc/swap_circ.png" width="30%">
+<img src="images/swap_circ.png" width="30%">
 </p>
 where adjacent SWAP gates are merged.
 
 There are a few limitations to this method:
 
-- some gates, like _controlled operators_, do not need _every_ local amplitude to be exchanged to its communicating partner:
+- some gates, like _controlled operators_, do not need _every_ local amplitude to be exchanged to its communicating partner ([Fig. 7](https://arxiv.org/pdf/2311.01512.pdf#page=16)):
   
   <p align="center">
-  <img src="doc/controlled_comm.png" width="40%">
+  <img src="images/controlled_comm.png" width="40%">
   </p>
 
   We should avoid superfluously communicating the unused amplitudes. We can do this with the `maskBitString` argument to [`custatevecDistIndexBitSwapSchedulerSetIndexBitSwaps`](https://docs.nvidia.com/cuda/cuquantum/23.03.0/custatevec/api/functions.html#custatevecdistindexbitswapschedulersetindexbitswaps), and then perform the local modification (with [`custatevecApplyMatrix`](https://docs.nvidia.com/cuda/cuquantum/23.03.0/custatevec/api/functions.html#general-matrices) specifying `controls`).
@@ -35,26 +35,26 @@ There are a few limitations to this method:
 
 - some gates, like Pauli gadgets ([`custatevecApplyPauliRotation`](https://docs.nvidia.com/cuda/cuquantum/23.03.0/custatevec/api/functions.html#custatevecapplypaulirotation)) (and their un-exponentiated form) "move around" the local data in such a way (due to being anti-diagonal) that _pair-wise_ communication is possible. In contrast, the communication pattern admitted by qubit re-ordering may be all-to-all and require more total messages. This is because it is agnostic to the subsequent local modification and does not leverage Pauli (anti-)diagonality.
 
-  For example, consider applying four-qubit gadget $`\exp(i \theta XXXX)`$ upon the highest-index qubits $`\{4,5,6,7\}`$ of an $8$-qubit statevector distributed between $16$ nodes. Using `cuStateVec`'s qubit reordering, our communication pattern resembles:
+  For example, consider applying four-qubit gadget $`\exp(i \theta XXXX)`$ upon the highest-index qubits $`\{4,5,6,7\}`$ of an $8$-qubit statevector distributed between $16$ nodes. Using `cuStateVec`'s qubit reordering, our communication pattern resembles ([Fig. 11](https://arxiv.org/pdf/2311.01512.pdf#page=22)):
 
   <p align="center">
-  <img src="doc/multi_targ_decomp.png" width="90%">
+  <img src="images/multi_targ_decomp.png" width="90%">
   </p>
 
   where we have divided the communication into pairwise swaps for illustration. The middle $`\hat{M}_{0,1,2,3}`$ operator would be an invocation of `custatevecApplyPauliRotation()`. Of course each SWAP is not individually performed; the amplitudes are moved straight to their destination node by [`custatevecDistIndexBitSwapSchedulerSetIndexBitSwaps`](https://docs.nvidia.com/cuda/cuquantum/23.03.0/custatevec/api/functions.html#custatevecdistindexbitswapschedulersetindexbitswaps). However, the communication remains all-to-all and resembles the left diagram.
 
-  However, using an alternative bespoke subroutine, we can achieve a _pair-wise_ "one-shot" communication pattern:
+  However, using an alternative bespoke subroutine, we can achieve a _pair-wise_ "one-shot" communication pattern ([Fig. 13](https://arxiv.org/pdf/2311.01512.pdf#page=26)):
 
   <p align="center">
-  <img src="doc/exp_xxxx.png" width="20%">
+  <img src="images/exp_xxxx.png" width="20%">
   </p>
 
 - sometimes qubit re-ordering _is not possible_ because there are insufficiently many "[local index bits](https://docs.nvidia.com/cuda/cuquantum/23.03.0/custatevec/distributed_index_bit_swap.html)" to swap the "global index bits" into! For example, if we applied the above Pauli gadget upon _every qubit_. There is currently _no way_ to perform distributed simulation of this gate in `cuStateVec`.
 
-  However, the above strategy for simulating Pauli gadgets does _not_ have a size limit. Due to (anti)-diagonality of the Pauli operators, _any_ Pauli gadget is always pair-wise communicating!
+  However, the above strategy for simulating Pauli gadgets does _not_ have a size limit. Due to (anti)-diagonality of the Pauli operators, _any_ Pauli gadget is always pair-wise communicating! ([Fig. 13](https://arxiv.org/pdf/2311.01512.pdf#page=26))
 
   <p align="center">
-  <img src="doc/pauli_gadget_comm.png" width="90%">
+  <img src="images/pauli_gadget_comm.png" width="90%">
   </p>
 
 -------------------
