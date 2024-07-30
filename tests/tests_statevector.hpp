@@ -35,14 +35,17 @@ TEST_CASE( "statevector_oneTargGate" ) {
 }
 
 
-TEST_CASE( "statevector_manyCtrlOneTargGate") {
+TEST_CASE( "statevector_manyCtrlOneTargGate" ) {
     
     PREPARE_PSI_TEST( psi, ref );
     
     AmpMatrix gate = getRandomMatrix( powerOf2(1) );
     Nat target = getRandomNat(0, NUM_QUBITS_PSI);
-    Nat numCtrls = getRandomNat(1, NUM_QUBITS_PSI-1);
-    NatArray controls = getRandomUniqueNatArray(0, NUM_QUBITS_PSI, numCtrls, target);
+    Nat numCtrls = getRandomNat(0, NUM_QUBITS_PSI-1); // HMM it doesn't work with 0?
+
+    NatArray controls = {};
+    if (numCtrls > 0)
+        getRandomUniqueNatArray(0, NUM_QUBITS_PSI, numCtrls, target);
 
     distributed_statevector_manyCtrlOneTargGate(psi, controls, target, gate);
     applyGateToLocalState(ref, controls, {target}, gate);

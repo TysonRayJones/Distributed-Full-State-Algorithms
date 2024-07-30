@@ -44,8 +44,8 @@ static void distributed_densitymatrix_pauliTensor(DensityMatrix &rho, NatArray t
     
     if (containsOddNumY(paulis)) {
         #pragma omp parallel for
-        for (Amp &amp : rho.amps)
-            amp *= -1;
+        for (Index i=0; i<rho.numAmpsPerNode; i++)
+            rho.amps[i] *= -1;
     }
 }
 

@@ -10,32 +10,100 @@
 #include <complex>
 #include <chrono>
 
+using namespace std;
 using namespace std::chrono;
-using namespace std::complex_literals;
+
+
+/*
+ * Need to compare:
+ * - oneTargetGate to manyCtrlOneTargGate with no controls
+ * - oneTargetGate to manyTargGate with 1 control
+ */
+
+
+const int NUM_REPS = 100;
 
 
 
-int main() {
-    
+int main(int argc, char* argv[]) {
+
     comm_init();
 
-    Nat numQubits = 26;
+    Nat numQubits = atoi(argv[1]);
     StateVector state = StateVector(numQubits);
+    AmpMatrix matrix;
 
-    NatArray targets = {0,6,4,2};
-    AmpMatrix matrix = getRandomMatrix( powerOf2(targets.size()) ); 
+    for (Index i=0; i<state.numAmpsPerNode; i++)
+        state.amps[i] = 1;
 
-    auto start = high_resolution_clock::now();
+
+
+    // try to eliminate warm-up effects
+    for (Nat n=0; n<NUM_REPS; n++) {
+        for (Nat t=0; t<numQubits; t++) {
+            matrix = getRandomMatrix( powerOf2(1) );
+            distributed_statevector_oneTargGate(state, t, matrix);
+            distributed_statevector_manyCtrlOneTargGate(state, {}, t, matrix);
+            distributed_statevector_manyTargGate(state, {t}, matrix);
+        }
+    }
+    
+
+
     comm_synch();
+    auto start = high_resolution_clock::now();
 
-    distributed_statevector_manyTargGate(state, targets, matrix);
+    for (Nat n=0; n<NUM_REPS; n++) {
+        for (Nat t=0; t<numQubits; t++) {
+            matrix = getRandomMatrix( powerOf2(1) );
+            distributed_statevector_oneTargGate(state, t, matrix);
+        }
+    }
 
     comm_synch();
     auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - start).count();
+    auto durA = duration_cast<microseconds>(stop - start).count();
 
-    rootNodePrint("done in " + std::to_string(dur) + " microseconds\n");
 
+
+    comm_synch();
+    start = high_resolution_clock::now();
+
+    for (Nat n=0; n<NUM_REPS; n++) {
+        for (Nat t=0; t<numQubits; t++) {
+            matrix = getRandomMatrix( powerOf2(1) );
+            distributed_statevector_manyCtrlOneTargGate(state, {}, t, matrix);
+        }
+    }
+
+    comm_synch();
+    stop = high_resolution_clock::now();
+    auto durB = duration_cast<microseconds>(stop - start).count();
+    
+
+
+    comm_synch();
+    start = high_resolution_clock::now();
+
+    for (Nat n=0; n<NUM_REPS; n++) {
+        for (Nat t=0; t<numQubits; t++) {
+            distributed_statevector_manyTargGate(state, {t}, matrix);
+        }
+    }
+
+    comm_synch();
+    stop = high_resolution_clock::now();
+    auto durC = duration_cast<microseconds>(stop - start).count();
+
+
+    if (state.rank == 0) {
+        cout << "durA (oneTargGate):         " << durA << endl;
+        cout << "durB (manyCtrlOneTargGate): " << durB << endl;
+        cout << "durC (manyTargGate):        " << durC << endl;
+    }
+
+
+    comm_synch();
     comm_end();
     return 0;
 }
