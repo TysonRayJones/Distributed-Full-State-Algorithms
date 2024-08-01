@@ -106,6 +106,61 @@ static void distributed_statevector_manyCtrlOneTargGate(StateVector& psi, NatArr
 }
 
 
+static void distributed_statevector_oneCtrlOneTargGate_subroutine(StateVector& psi, Nat control, Nat target, AmpMatrix gate) {
+
+    Nat localTarget = target - psi.logNumAmpsPerNode;
+    Nat pairRank = flipBit(psi.rank, localTarget);
+    Nat bufferOffset = 0;
+
+    Index numAmpsToMod = psi.numAmpsPerNode / powerOf2(1); 
+
+    // pack sub-buffer[0...]
+    #pragma omp parallel for
+    for (Index j=0; j<numAmpsToMod; j++) {
+        Index k = insertBit(j, control, 1);
+        psi.buffer[j] = psi.amps[k];
+    }
+
+    // send buffer[0...], receive buffer[bufferOffset...] (gauranteed to fit)
+    bufferOffset = numAmpsToMod;
+    comm_exchangeArrays(psi.buffer, 0, psi.buffer, bufferOffset, numAmpsToMod, pairRank);
+    
+    // extract relevant gate elements
+    Nat bit = getBit(psi.rank, localTarget);
+    Amp fac0 = gate[bit][bit];
+    Amp fac1 = gate[bit][!bit];
+    
+    // update psi using sub-buffer
+    #pragma omp parallel for
+    for (Index j=0; j<numAmpsToMod; j++) {
+        Index k = insertBit(j, control, 1);
+        Index l = j + bufferOffset;
+        psi.amps[k] = fac0*psi.amps[k] + fac1*psi.buffer[l];
+    }
+}
+
+
+static void distributed_statevector_oneCtrlOneTargGate(StateVector& psi, Nat control, Nat target, AmpMatrix gate) {
+            
+    // do nothing if this node fails prefix control condition
+    if (control > psi.logNumAmpsPerNode)
+        if (getBit(psi.rank, control - psi.logNumAmpsPerNode) == 0)
+            return;
+    
+    // embarrassingly parallel
+    if (target < psi.logNumAmpsPerNode)
+        local_statevector_oneCtrlOneTargGate(psi, control, target, gate);
+    
+    // no suffix controls; effect non-controlled gate
+    else if (control > psi.logNumAmpsPerNode)
+        distributed_statevector_oneTargGate(psi, target, gate);
+    
+    // bespoke communication for controls required
+    else
+        distributed_statevector_oneCtrlOneTargGate_subroutine(psi, control, target, gate);
+}
+
+
 static void distributed_statevector_swapGate(StateVector &psi, Nat qb1, Nat qb2) {
     
     // ensure qb2 is larger

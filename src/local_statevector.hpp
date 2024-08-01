@@ -29,6 +29,54 @@ static void local_statevector_oneTargGate(StateVector& psi, Nat target, AmpMatri
 }
 
 
+static void local_statevector_oneCtrlOneTargGate_overoptimised(StateVector& psi, Nat qb2, Nat qb1, Nat target, AmpMatrix gate) {
+
+    // qb2 > qb1, and target is in {qb1, qb2}
+
+    Index numIts = psi.numAmpsPerNode / powerOf2(2);
+
+    #pragma omp parallel for
+    for (Index j=0; j<numIts; j++) {
+        Index i1 = insertBit(insertBit(j, qb1, 1), qb2, 1);
+        Index i0 = flipBit(i1, target);
+        
+        Amp amp0 = psi.amps[i0];
+        Amp amp1 = psi.amps[i1];
+        
+        psi.amps[i0] = gate[0][0]*amp0 + gate[0][1]*amp1;
+        psi.amps[i1] = gate[1][0]*amp0 + gate[1][1]*amp1;
+    }
+}
+
+
+static void local_statevector_oneCtrlOneTargGate(StateVector& psi, Nat control, Nat target, AmpMatrix gate) {
+
+    // over-optimisation to avoid use of qubits list below
+    Nat qb1 = (control < target)? control : target;
+    Nat qb2 = (control < target)? target  : control;
+    local_statevector_oneCtrlOneTargGate_overoptimised(psi, qb2, qb1, target, gate);
+    return;
+
+    // the mild need to treat them as this list (to ensure correct order of bit insertion) might induce slowdown
+    NatArray qubits = {control, target};
+    std::sort(qubits.begin(), qubits.end());
+    
+    Index numIts = psi.numAmpsPerNode / powerOf2(qubits.size());
+
+    #pragma omp parallel for
+    for (Index j=0; j<numIts; j++) {
+        Index i1 = insertBits(j, qubits, 1);
+        Index i0 = flipBit(i1, target);
+        
+        Amp amp0 = psi.amps[i0];
+        Amp amp1 = psi.amps[i1];
+        
+        psi.amps[i0] = gate[0][0]*amp0 + gate[0][1]*amp1;
+        psi.amps[i1] = gate[1][0]*amp0 + gate[1][1]*amp1;
+    }
+}
+
+
 static void local_statevector_manyCtrlOneTargGate(StateVector& psi, NatArray controls, Nat target, AmpMatrix gate) {
     
     NatArray qubits = controls;
@@ -36,7 +84,7 @@ static void local_statevector_manyCtrlOneTargGate(StateVector& psi, NatArray con
     std::sort(qubits.begin(), qubits.end());
     
     Index numIts = psi.numAmpsPerNode / powerOf2(qubits.size());
-    
+
     #pragma omp parallel for
     for (Index j=0; j<numIts; j++) {
         Index i1 = insertBits(j, qubits, 1);

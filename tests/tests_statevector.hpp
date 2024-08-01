@@ -35,6 +35,22 @@ TEST_CASE( "statevector_oneTargGate" ) {
 }
 
 
+TEST_CASE( "statevector_oneCtrlOneTargGate" ) {
+    
+    PREPARE_PSI_TEST( psi, ref );
+    
+    AmpMatrix gate = getRandomMatrix( powerOf2(1) );
+    NatArray qubits = getRandomUniqueNatArray(0, NUM_QUBITS_PSI, 2);
+    Nat target = qubits[0];
+    Nat control = qubits[1];
+
+    distributed_statevector_oneCtrlOneTargGate(psi, control, target, gate);
+    applyGateToLocalState(ref, {control}, {target}, gate);
+
+    REQUIRE( psi.agreesWith(ref) );
+}
+
+
 TEST_CASE( "statevector_manyCtrlOneTargGate" ) {
     
     PREPARE_PSI_TEST( psi, ref );

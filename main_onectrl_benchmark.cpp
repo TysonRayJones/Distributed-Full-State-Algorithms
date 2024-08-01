@@ -15,9 +15,10 @@ using namespace std::chrono;
 
 
 /*
- * Need to compare:
- * - oneTargetGate to manyCtrlOneTargGate with no controls
- * - oneTargetGate to manyTargGate with 1 control
+ * Compares 
+ * - oneCtrlOneTargGate,
+ * - manyCtrlOneTargGate
+ * when given one control.
  */
 
 
@@ -41,10 +42,14 @@ int main(int argc, char* argv[]) {
     // try to eliminate warm-up effects
     for (Nat n=0; n<NUM_REPS; n++) {
         for (Nat t=0; t<numQubits; t++) {
-            matrix = getRandomMatrix( powerOf2(1) );
-            distributed_statevector_oneTargGate(state, t, matrix);
-            distributed_statevector_manyCtrlOneTargGate(state, {}, t, matrix);
-            distributed_statevector_manyTargGate(state, {t}, matrix);
+            for (Nat c=0; c<numQubits; c++) {
+                if (t==c)
+                    continue;
+
+                matrix = getRandomMatrix( powerOf2(1) );
+                distributed_statevector_oneCtrlOneTargGate(state, c, t, matrix);
+                distributed_statevector_manyCtrlOneTargGate(state, {c}, t, matrix);
+            }
         }
     }
     
@@ -55,8 +60,13 @@ int main(int argc, char* argv[]) {
 
     for (Nat n=0; n<NUM_REPS; n++) {
         for (Nat t=0; t<numQubits; t++) {
-            matrix = getRandomMatrix( powerOf2(1) );
-            distributed_statevector_oneTargGate(state, t, matrix);
+            for (Nat c=0; c<numQubits; c++) {
+                if (t==c)
+                    continue;
+
+                matrix = getRandomMatrix( powerOf2(1) );
+                distributed_statevector_oneCtrlOneTargGate(state, c, t, matrix);
+            }
         }
     }
 
@@ -71,8 +81,13 @@ int main(int argc, char* argv[]) {
 
     for (Nat n=0; n<NUM_REPS; n++) {
         for (Nat t=0; t<numQubits; t++) {
-            matrix = getRandomMatrix( powerOf2(1) );
-            distributed_statevector_manyCtrlOneTargGate(state, {}, t, matrix);
+            for (Nat c=0; c<numQubits; c++) {
+                if (t==c)
+                    continue;
+
+                matrix = getRandomMatrix( powerOf2(1) );
+                distributed_statevector_manyCtrlOneTargGate(state, {c}, t, matrix);
+            }
         }
     }
 
@@ -81,25 +96,9 @@ int main(int argc, char* argv[]) {
     auto durB = duration_cast<microseconds>(stop - start).count();
     
 
-
-    comm_synch();
-    start = high_resolution_clock::now();
-
-    for (Nat n=0; n<NUM_REPS; n++) {
-        for (Nat t=0; t<numQubits; t++) {
-            distributed_statevector_manyTargGate(state, {t}, matrix);
-        }
-    }
-
-    comm_synch();
-    stop = high_resolution_clock::now();
-    auto durC = duration_cast<microseconds>(stop - start).count();
-
-
     if (state.rank == 0) {
-        cout << "durA (oneTargGate):         " << durA << endl;
+        cout << "durA (oneCtrlOneTargGate):  " << durA << endl;
         cout << "durB (manyCtrlOneTargGate): " << durB << endl;
-        cout << "durC (manyTargGate):        " << durC << endl;
     }
 
 

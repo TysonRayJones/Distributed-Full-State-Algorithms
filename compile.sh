@@ -3,7 +3,7 @@ conf="-std=c++17 -O3 -fopenmp -march=native"
 dirs="-Isrc -Itests -Icatch"
 
 echo "compiling main..."
-mpic++ $conf $dirs main.cpp -o main $*
+mpic++ $conf $dirs main_onectrl_benchmark.cpp -o main $*
 
 echo "compiling tests..."
 mpic++ $conf $dirs tests/tests.cpp catch/catch_amalgamated.cpp -o test $*
