@@ -19,16 +19,19 @@ int main() {
     
     comm_init();
 
-    Nat numQubits = 26;
-    StateVector state = StateVector(numQubits);
+    Nat numQubits = 20;
+    Nat numReps = 20;
 
-    NatArray targets = {0,6,4,2};
-    AmpMatrix matrix = getRandomMatrix( powerOf2(targets.size()) ); 
+    StateVector psi = StateVector(numQubits);
 
     auto start = high_resolution_clock::now();
     comm_synch();
 
-    distributed_statevector_manyTargGate(state, targets, matrix);
+    // XX + YY + ZZ
+    for (Nat r=0; r<numReps; r++)
+        for (Nat t=0; t<numQubits; t++)
+            for (Nat p=1; p<3; p++)
+                distributed_statevector_pauliGadget(psi, {t, (t+1)%numQubits}, {p,p}, 0.1*(r+t+p));
 
     comm_synch();
     auto stop = high_resolution_clock::now();
